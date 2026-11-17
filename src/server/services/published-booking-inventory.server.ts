@@ -49,6 +49,9 @@ export async function readPublishedBookingInventory(
           code: slots.code,
           routeId: inventoryRoutes.id,
           routeName: inventoryRoutes.name,
+          rowId: boothRows.id,
+          rowLabel: boothRows.label,
+          footprintSide: boothRows.footprintSide,
           routeDisplayOrder: inventoryRoutes.displayOrder,
           displayOrder: slots.displayOrder,
           frontageMillimeters: sql<number>`COALESCE(${slots.frontageOverrideMillimeters}, ${slots.baseFrontageMillimeters})`,
@@ -89,6 +92,16 @@ export async function readPublishedBookingInventory(
         .from(exclusions)
         .where(eq(exclusions.layoutId, publishedLayout.layoutId))
 
+      const publishedRows = await transaction
+        .select({
+          rowId: boothRows.id,
+          label: boothRows.label,
+          footprintSide: boothRows.footprintSide,
+          centerline: sql<unknown>`ST_AsGeoJSON(${boothRows.centerline}, 15)::json`,
+        })
+        .from(boothRows)
+        .where(eq(boothRows.layoutId, publishedLayout.layoutId))
+
       const event = publishedLayout.event
       return {
         status: 'published',
@@ -108,6 +121,7 @@ export async function readPublishedBookingInventory(
           layoutId: publishedLayout.layoutId,
           layoutRevision: publishedLayout.layoutRevision,
           slots: publishedSlots,
+          rows: publishedRows,
           exclusions: publishedExclusions,
         }),
       }

@@ -18,6 +18,10 @@ import {
 import { readPublishedBookingInventory } from '#/server/services/published-booking-inventory.server'
 import { readBookingQuote } from '#/server/services/booking-quote.server'
 import {
+  KETAON_STREET_DEMO_EVENT_ID,
+  seedKetaonStreetBookingInventory,
+} from '../../db/seeds/ketaon-street-booking-inventory'
+import {
   ILLUSTRATIVE_EVENT_ID,
   ILLUSTRATIVE_LAYOUT_ID,
   seedIllustrativeBookingInventory,
@@ -47,6 +51,37 @@ if (
 const connection = createBookingDatabase(pooledUrl)
 const database = connection.database
 let inventory: PublishedBookingInventory
+
+it('publishes real street context with illustrative slots on both sides and independent prices', async () => {
+  await seedKetaonStreetBookingInventory(database)
+  const result = await readPublishedBookingInventory(
+    database,
+    KETAON_STREET_DEMO_EVENT_ID,
+  )
+  expect(result.status).toBe('published')
+  if (result.status !== 'published')
+    throw new Error('Street inventory was not published')
+  const streetInventory = result.inventory
+  expect(streetInventory.event.isIllustrative).toBe(true)
+  expect(streetInventory.slots).toHaveLength(220)
+  expect(
+    streetInventory.slots.filter((slot) => slot.footprintSide === 'left'),
+  ).toHaveLength(110)
+  expect(
+    streetInventory.slots.filter((slot) => slot.footprintSide === 'right'),
+  ).toHaveLength(110)
+  expect(streetInventory.rows.length).toBeGreaterThan(2)
+  expect(streetInventory.exclusions.length).toBe(streetInventory.rows.length)
+  expect(
+    streetInventory.slots.find((slot) => slot.code === 'L-001'),
+  ).toMatchObject({ frontageMillimeters: 1200, priceIdr: 325000 })
+  expect(
+    streetInventory.slots.find((slot) => slot.code === 'R-003'),
+  ).toMatchObject({ frontageMillimeters: 2100, priceIdr: 250000 })
+  expect(await seedKetaonStreetBookingInventory(database)).toEqual({
+    status: 'already_seeded',
+  })
+})
 
 function slotByCode(code: string) {
   const slot = inventory.slots.find((candidate) => candidate.code === code)

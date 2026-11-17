@@ -18,7 +18,8 @@
     "test:integration": "node --env-file-if-exists=.env.test.local node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-booking-database.ts",
-    "db:seed": "node --env-file-if-exists=.env.local --import tsx scripts/seed-booking-inventory.ts"
+    "db:seed": "node --env-file-if-exists=.env.local --import tsx scripts/seed-booking-inventory.ts",
+    "db:seed:street-demo": "node --env-file-if-exists=.env.local --import tsx scripts/seed-ketaon-street-inventory.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^10.3.0",

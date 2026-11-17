@@ -27,6 +27,10 @@ The MVP must demonstrate both the customer reservation and the admin operation. 
 - Customers can check out and book slots without signing in or creating an account. Guest checkout is confirmed; admin access still requires authentication.
 - The map must offer satellite imagery, preserve slot overlays across basemaps, and support close zoom for inspecting available slots and adjusting the draft layout.
 - `/` is the event landing page. `/booking` is the customer booking entry point and the focus of the upcoming portal implementation.
+- `/booking` is a full-viewport map with satellite as the default background, floating cart and slot-code search. Do not show event information, page headers, route/availability filters or price bounds here. Slot footprints support hover details and direct click-to-add/remove. Keep an accessible search/list overlay without replacing the map with a separate catalog view.
+- Customer booking is mobile-first, including the 375 × 667 iPhone SE viewport. The cart starts as a compact bar and opens only on request in a bottom sheet with a visible **Tutup** button, internal item scrolling and persistent close/footer controls. Closing it keeps selected slots.
+- Customer booking copy is confirmed in casual Bahasa Indonesia with a Gen Z tone. Keep status, dimensions, prices and incomplete reservation/payment state precise; accessibility labels and errors use the same language.
+- The starter street runs from Pasar Cepit / Pasar Ketaon baru to Bengkel Purnama Fauzan. Additional routes within this fixed event, including toward Makam Mbah Budo, can have their own generated slots; their geometry and frontage approvals are still required.
 - `/admin` is the authenticated admin dashboard entry point for slot management, pricing, analytics, and monitoring.
 - Routes and permitted frontage are defined for the fixed event, with explicit gaps around unavailable areas.
 - Configurable frontage length per slot, including 1.2 m, 1.5 m, 2 m, and 2.1 m; do not restrict input to a fixed preset list.
@@ -50,7 +54,6 @@ These choices make the draft actionable. They are not previously confirmed busin
 | Layout lifecycle      | Geometry becomes fixed after the first reservation                                                                 | Admin can still change eligible prices and block available slots.                                                         |
 | Fees and taxes        | No additional line items in the demo                                                                               | Live fees, taxes, and customer disclosures remain undecided.                                                              |
 | Payment integration   | Deferred, including Sandbox                                                                                        | Show "No payment collected"; no fake paid state, payment form, or provider credentials required.                          |
-| Interface language    | Indonesian proposed for the demo audience                                                                          | Documentation is English; product language remains a decision.                                                            |
 
 ## 3. Users, tasks, and success criteria
 
@@ -204,29 +207,31 @@ Show last refreshed time and refresh failure. Display event timezone explicitly.
 
 ### Route ownership
 
-The event landing page lives at `/`. The booking experience lives at `/booking`, which contains both the slot view and map view with one shared selection. The authenticated admin dashboard lives at `/admin`. Customers can open `/booking` directly; visiting the landing page first is optional.
+The event landing page lives at `/`. The booking experience lives at `/booking`, with a full-viewport map, accessible search/list overlay and one floating cart. The authenticated admin dashboard lives at `/admin`. Customers can open `/booking` directly; visiting the landing page first is optional.
 
 Keep event promotion and general information on the landing page, with navigation into booking. Focus the upcoming portal work on `/booking` and its booking flow. Proposed follow-on routes are `/booking/checkout` for contact details, quote review, and reservation submission and `/booking/orders/$bookingOrderId` for private order status; these child paths are implementation proposals rather than separately confirmed requirements.
 
 ### 6.1 Event and inventory browser
 
-Show event details, booking availability, slot dimensions, prices, and an illustrative-layout notice where applicable.
+Keep event information on `/`. `/booking` uses the entire viewport as the map canvas. Its search, cart and map controls float above the map. Show dimensions, prices and availability in hover/click details, search results and cart items, plus a concise illustrative-inventory notice where applicable.
 
-Provide two views:
+Provide the map and an accessible list overlay:
 
-- **Slot view:** a grouped, selectable grid/list with slot code, route/row, dimensions, individual price, and status. This remains usable when the map cannot load.
-- **Map view:** geographic slot polygons with route labels, access gaps, status legend, street/satellite basemap switcher, zoom controls, and a slot details panel.
+- **Map:** geographic slot polygons over satellite imagery by default. Available slots add to the floating cart when clicked; clicking selected slots removes them. Hover highlights the footprint and shows code, dimensions, price and status. Unavailable slots remain inspectable without being added.
+- **Search/list overlay:** search slot codes and use labeled keyboard controls to add/remove or locate a slot. The overlay remains usable when the map cannot load; it does not become a separate booking page or full-page slot view.
 
-Both views use the same IDs, inventory response, filters, and selection. Switching views must preserve selected slots. Provide code search and route, availability, and price filters. At low zoom, use labels/details and the slot view instead of making tiny polygons the only selection control.
+Map, search results and floating cart use the same IDs, inventory response and selection. Slot-code search is the only customer inventory filter; route, availability and minimum/maximum price filters were explicitly removed by the user. Changing search/background or opening the cart must preserve selection. At low zoom, use search/results instead of making tiny polygons the only selection control.
+
+The street-side identity is relative to each row's saved start-to-end direction, never the camera bearing. The current illustrative starter follows OpenStreetMap road context near the supplied endpoints, with separate left/right rows, proposed 3 m offsets, mixed-size slots, and synthetic access gaps. These are demonstration allocations, not confirmed homeowner permissions or measured frontage. Adding more routes belongs to the A03/A04 authoring workflow; do not create a separate event for each street.
 
 Statuses must be readable through text and icons as well as color. Unavailable slots can be inspected but cannot be added. Selected details show each slot's individual price; never infer a common price across a mixed selection.
 
 #### Basemap and zoom behavior
 
-- Keep two separate choices: **Slot / Map** chooses the inventory presentation; **Street / Satellite** chooses the map background. Satellite is required for the MVP, rather than a later enhancement.
+- Satellite is the default background. A floating Street/Satellite control changes the background while the map remains the booking surface. There is no primary Slot/Map page-view toggle.
 - Draw the same slot footprints and access-gap overlays above both map backgrounds. Preserve selected IDs, prices, filters, current viewport, and any unsaved editor work when switching basemaps.
 - Provide zoom in/out, a scale indicator, **Fit available slots**, and **Zoom to slot**. Fit available slots uses the current filters and viewport padding; when none match, show an empty result rather than jumping to an unrelated location.
-- Start with the published layout in view. Allow manual close zoom, with a proposed display cap of 24, so individual small slots remain inspectable. Fit/focus actions respect that cap and leave room for the details/selection panel on desktop and mobile.
+- Start with available inventory fitted around the floating controls/cart. Derive the minimum zoom from that fit; zooming out must stop there rather than revealing the whole world. Bound panning to the fitted local region as well. If no slots are available, retain published-layout context. Recalculate the local navigation limits for viewport size changes; code search and availability polling do not widen them. Allow manual close zoom up to 24 and focus up to 22.
 - Do not automatically reset the viewport when availability refreshes. A slot chosen from the slot view can be located through an explicit action that opens the map and focuses that slot.
 - Keep outlines, selection, and status labels legible over photography. Increasing zoom must not enlarge the geographic slot dimensions or imply a more accurate survey.
 - Satellite imagery can become blurry beyond its native detail. Keep vector slots usable at close zoom and describe imagery as geographic context, not a measurement source.
@@ -290,6 +295,8 @@ Held, paid, sold, payment-pending, and payment-expiry states belong to the later
 
 Customer selection and checkout must work at a 360 px viewport without horizontal page scrolling. Provide keyboard-operable controls, labeled form errors, visible focus, and an accessible slot list alternative to map interactions. The admin editor is desktop-first; the dashboard and order monitoring remain readable on mobile.
 
+The booking cart remains compact while customers explore/select slots. Open contents in a sheet capped at 65% of a portrait dynamic viewport; short-height layouts can use 85% to retain usable header/footer controls. Item content scrolls internally. Closing via **Tutup**, Escape or backdrop must retain the cart and restore focus to the launcher. Use 44 px touch targets, safe-area spacing and 16 px search text. The map controls move into thumb reach on mobile; satellite, overlay, search, cart and navigation bounds must continue to work together.
+
 ## 9. Out of scope
 
 - Multi-organization billing, public organizer onboarding, or complex admin roles.
@@ -308,7 +315,7 @@ Later payment integration must add verified provider outcomes and reversal/excep
 
 ### Milestone 1 — Customer booking flow first
 
-Start with a clearly illustrative, published database fixture so portal work can proceed before the editor is complete. Deliver `/booking` with slot/map views, street/satellite switching, filters, shared mixed-size/price selection, checkout review, atomic reservation submission, and a private booking result.
+Start with a clearly illustrative, published database fixture so portal work can proceed before the editor is complete. Deliver `/booking` as a full-viewport satellite map with floating cart, slot-code search/list overlay, hover/click interaction, local navigation bounds, shared mixed-size/price selection, checkout review, atomic reservation submission, and a private booking result.
 
 Acceptance:
 

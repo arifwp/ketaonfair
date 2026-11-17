@@ -1,0 +1,28 @@
+{
+  "name": "Pasar Ketaon → Bengkel Purnama Fauzan",
+  "source": "OpenStreetMap routing geometry via OSRM public route service",
+  "sourceUrl": "https://router.project-osrm.org/route/v1/driving/110.6782416,-7.5289495;110.6776671,-7.5315821?overview=full&geometries=geojson",
+  "license": "OpenStreetMap contributors, ODbL 1.0",
+  "retrievedAt": "2026-11-17",
+  "notice": "Road context only. Booth positions, offsets, access gaps and prices are illustrative, not surveyed or approved.",
+  "geometry": {
+    "coordinates": [
+      [110.678194, -7.52911],
+      [110.678023, -7.529059],
+      [110.677992, -7.529276],
+      [110.677918, -7.529748],
+      [110.677912, -7.529792],
+      [110.677838, -7.530281],
+      [110.677827, -7.530353],
+      [110.677803, -7.530541],
+      [110.677788, -7.530657],
+      [110.677765, -7.530824],
+      [110.677746, -7.530992],
+      [110.677742, -7.531035],
+      [110.677739, -7.531071],
+      [110.677742, -7.531372],
+      [110.677753, -7.531577]
+    ],
+    "type": "LineString"
+  }
+}

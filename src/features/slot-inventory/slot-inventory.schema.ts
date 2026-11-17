@@ -14,6 +14,9 @@ export const publishedBookingSlotSchema = z.object({
   code: z.string(),
   routeId: z.uuid(),
   routeName: z.string(),
+  rowId: z.uuid(),
+  rowLabel: z.string(),
+  footprintSide: z.enum(['left', 'right']),
   routeDisplayOrder: z.number().int(),
   displayOrder: z.number().int(),
   frontageMillimeters: z.number().int().positive(),
@@ -40,6 +43,17 @@ export const publishedBookingInventorySchema = z.object({
   layoutId: z.uuid(),
   layoutRevision: z.number().int().positive(),
   slots: z.array(publishedBookingSlotSchema),
+  rows: z.array(
+    z.object({
+      rowId: z.uuid(),
+      label: z.string(),
+      footprintSide: z.enum(['left', 'right']),
+      centerline: z.object({
+        type: z.literal('LineString'),
+        coordinates: z.array(coordinateSchema),
+      }),
+    }),
+  ),
   exclusions: z.array(
     z.object({
       exclusionId: z.uuid(),

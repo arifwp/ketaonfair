@@ -10,7 +10,13 @@ import { nitro } from 'nitro/vite'
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
-    devtools(),
+    devtools({
+      // These components forward props to MapLibre's strict style schema.
+      injectSource: {
+        enabled: true,
+        ignore: { components: ['Source', 'Layer'] },
+      },
+    }),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tailwindcss(),
     tanstackStart(),
