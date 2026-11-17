@@ -174,10 +174,12 @@ Longer names are welcome when they clarify intent. Avoid abbreviations, ambiguou
 
 ## React, state, and presentation
 
+- The confirmed primary brand color is `#047857`. Keep it centralized as `--brand-primary` in `src/styles.css`, consumed by semantic primary/sidebar/focus tokens. Use `bg-primary`, `text-primary`, and related semantic utilities rather than repeating the hex in components. Use white foreground text on primary fills and check contrast for new color pairings. See [design direction](DESIGN.md).
 - Use TanStack Query for server state, router search parameters for shareable navigation state, and Zustand for shared client state that cannot be derived. Never maintain a second writable copy of server inventory/prices.
 - Scope query keys by event, layout revision, resource, and relevant filters. Share query options between loaders/components and invalidate affected data after mutations.
 - Keep SSR state request-scoped. Never share a server QueryClient or customer selection store across users. Clear private queries on sign-out or identity changes.
 - Slot/map views share inventory and selected IDs. Reservation-time server validation is authoritative.
+- Map view must include street/satellite backgrounds with persistent slot overlays and close zoom for small footprints. Keep Slot/Map presentation separate from Street/Satellite basemaps. Preserve selection, viewport, and draft edits when changing backgrounds, and follow the documented fit/focus and source-zoom rules.
 - Use focused components, semantic HTML, reusable controls, and semantic styling tokens.
 - Define relevant loading, empty, error, pending, stale, unauthorized, and success states. Prevent accidental duplicate submissions while retaining server idempotency.
 - Provide labels, visible focus, keyboard access, non-color status indicators, and an accessible list alternative to map interaction. Follow the MVP's mobile booking requirements.
@@ -202,6 +204,7 @@ Longer names are welcome when they clarify intent. Avoid abbreviations, ambiguou
 - Preserve transactional slot claims, uniqueness constraints, deterministic lock order, quote validation, and immutable order snapshots from the architecture.
 - Reserve the complete selection or none. Browser state, optimistic UI, and polling cannot prevent double booking.
 - Use integer IDR values, integer measured dimensions with units, and timezone-aware timestamps formatted in the event timezone.
+- Treat slot size and price as independent per-slot values with common defaults and explicit overrides. Mixed-width positions use cumulative effective widths, not index times a shared width. A draft resize must atomically validate affected geometry, preserve slot identities/prices, and reject overflow without silently deleting inventory.
 - Keep local selection, held/sold inventory, order state, and provider payment state distinct.
 - Make external payment calls outside database transactions. Persist idempotent attempts; uncertain creation/status retains ownership until safely reconciled.
 - Verify notifications and provider status. Never confirm from a browser callback or release inventory from a local countdown alone.

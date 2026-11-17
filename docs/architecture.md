@@ -32,7 +32,7 @@ Installed packages and scaffold files are not proof of working integrations. Kee
 | Styling and components           | Tailwind CSS + shadcn/ui + Lucide                                      | Existing packages/config; create reusable form, table, status, and dialog components.    |
 | Admin tables                     | TanStack Table                                                         | Existing; pricing, inventory, and order filtering.                                       |
 | Map renderer                     | MapLibre GL JS + `react-map-gl/maplibre`                               | Add; clickable GeoJSON inventory and geographic context.                                 |
-| Basemap                          | MapTiler streets; optional satellite layer                             | Proposed provider; key, local coverage, attribution, and usage limits need verification. |
+| Basemap                          | MapTiler streets + satellite layer switcher                            | Proposed provider; key, local coverage, attribution, and usage limits need verification. |
 | Layout drawing                   | Terra Draw + `terra-draw-maplibre-gl-adapter`                          | Add; edit source rows and approved-area geometry.                                        |
 | Geometry preview                 | Focused Turf.js modules                                                | Add; row slicing, distances, and draft generation helpers.                               |
 | Authoritative spatial validation | PostGIS                                                                | Enable in the chosen database; validate footprints and approved areas.                   |
@@ -121,22 +121,46 @@ This tree is a proposed destination. Do not treat it as files already present. S
 - Exchange map geometry as GeoJSON in WGS84 longitude/latitude order.
 - Store rows as PostGIS lines and approved footprints/slots as PostGIS polygons with SRID 4326.
 - Store frontage start/end distances and dimensions separately as exact integer millimeters. Convert to meters for display and geometry routines.
+- Dimensions and prices both support a common default with per-slot exceptions. Keep stored base frontage/depth and nullable individual overrides; derive effective dimensions from the override when present. Do not infer price from size.
 - Record whether dimensions are illustrative or field-measured. Coordinates alone cannot establish measurement accuracy.
 - Give each row a fixed direction and an explicit footprint side. Map rotation never changes numbering or depth direction.
 - Use a suitable local metric projection for footprint construction and area operations; choose it after confirming the event location. Use geography/geodesic measurement where appropriate. Never interpret longitude/latitude differences as meters.
+
+### Basemaps, overlays, and maximum zoom
+
+Satellite support is a confirmed requirement. Use a Street/Satellite basemap control inside map view; keep it separate from the Slot/Map presentation control. Use the same inventory IDs and GeoJSON overlays in the booking portal and admin editor.
+
+Proposed display configuration is `maxZoom: 24`, with event/layout bounds on initial entry and explicit fit/focus actions. MapLibre documents a map zoom range up to 24 and a default maximum of 22. Verify the chosen setting with the installed version and real device rendering before claiming slot-level usability. [MapLibre map options](https://maplibre.org/maplibre-gl-js/docs/API/type-aliases/MapOptions/).
+
+Treat display zoom and source tile zoom separately. Read the source's actual zoom range from provider metadata rather than requesting nonexistent tiles. MapLibre can reuse tiles beyond their source maximum; this magnifies imagery without creating additional ground detail. [MapLibre source specification](https://maplibre.org/maplibre-style-spec/sources/).
+
+MapTiler currently lists satellite tiles up to zoom 22, but native imagery resolution varies by location. The actual site's imagery and positional accuracy still require inspection. This does not prevent drawing independent vector slots at display zoom 24. [MapTiler satellite reference](https://docs.maptiler.com/schema-raster/satellite/).
+
+Implementation requirements:
+
+- Keep display zoom settings, basemap identifiers, and source configuration centralized in a descriptive client-safe map configuration module.
+- Preserve viewport, selection, filters, and draft source geometry independently of the active map style. Availability refresh must not trigger a camera reset.
+- Keep inventory/exclusion layers above the basemap. If switching full styles, restore custom sources/layers, feature selection, and drawing tools after style loading without duplicating handlers or discarding edits.
+- Configure geometry detail/simplification and source zoom for meter-scale footprints. Do not set a layer visibility maximum that hides slots before the map's display cap. Validate actual rendered footprints and hit detection at the proposed close zoom.
+- Fit filtered available inventory with padding and a zoom cap. Focus a single slot using its bounds; ensure details panels do not cover it. Handle an empty result explicitly.
+- Keep slot dimensions geographic, not screen-sized. Use label/outline contrast suitable for photography and retain keyboard/list access.
+- Handle satellite errors separately from order/inventory failures; offer street tiles or slot view without discarding the selection. Show required map/provider attribution.
+- Keep physical edits confined to the permitted draft workflow; changing style or zoom cannot change publication/booking restrictions.
 
 ### Draft generation pipeline
 
 1. Admin edits source rows, approved intervals, footprint boundaries, dimensions, and exclusions.
 2. Client previews valid uninterrupted intervals with Turf; `lineSliceAlong` is suitable for extracting distance-based row segments. [Turf reference](https://turfjs.org/docs/api/lineSliceAlong).
-3. Subtract exclusion intervals before allocating slot frontage. Use integer lengths for whole-slot count and remainder to avoid floating-point count errors.
+3. Subtract exclusion intervals before allocating slot frontage. For uniform generation, use integer division by the default width. For a mixed-size draft, allocate an ordered sequence using each slot's effective width and accumulate its end distance; do not calculate positions as slot index times one shared width. Track the actual remainder and reject overflow.
 4. Construct each slot footprint from its frontage segment and depth. Split difficult corners into separate stretches rather than allowing self-intersections.
 5. Send source parameters and expected draft revision to the server. The server recomputes canonical slot geometry and price defaults; it does not trust client polygons or totals.
 6. Validate positive dimensions, interval bounds, approval, exclusion avoidance, polygon validity, containment, and overlap. Shared boundaries are allowed; positive-area interior overlap is not.
 7. Save a complete generation atomically. Reject stale revisions instead of overwriting another admin edit.
-8. Publish only after validation. Draft regeneration retires/replaces draft slot records and warns about discarded overrides.
+8. Publish only after validation. A targeted dimension override preserves IDs, codes, and prices while reflowing and validating affected slots within that stretch. Full regeneration retires/replaces draft slots and requires a preview warning about discarded size/price overrides.
 
 Use PostGIS validity, coverage, and spatial-intersection operations through parameterized SQL. Apply an explicit metric tolerance chosen and tested for the local layout; do not silently tolerate overlapping space. Add GiST indexes to spatial columns used in validation.
+
+For individual resize, lock the event and affected draft records, check the expected revision and layout-edit eligibility, recompute the changed slot and following intervals in the same uninterrupted stretch, and validate all affected footprints before committing. If they do not fit, roll back; explicit draft removal is a separate reviewed action. A depth override changes the footprint without automatically shifting frontage intervals. Default changes do not silently resize generated inventory, and clearing an override must run the same validation.
 
 ### Publication and identity
 
@@ -148,25 +172,25 @@ Blocking and pricing remain independent operations on unclaimed inventory. Event
 
 ## 5. Conceptual database schema
 
-| Record                | Important fields and responsibility                                                                                                                              |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Better Auth tables    | Persisted user, session, account, and verification records managed through reviewed migrations.                                                                  |
-| Admin role assignment | Server-provisioned role tied to the auth user; no public admin signup or client-editable role.                                                                   |
-| `events`              | ID, slug, name, dates, timezone, booking window, sales state, default price/dimensions, active layout ID, `booking_started_at`.                                  |
-| `layout_versions`     | Event ID, version, draft/published/retired state, revision, approval metadata, published time.                                                                   |
-| `routes`              | Layout ID, name, display order; organizational grouping.                                                                                                         |
-| `booth_rows`          | Route ID, line geometry, fixed direction, footprint side, label.                                                                                                 |
-| `approved_stretches`  | Row ID, start/end mm, frontage/depth mm, approved polygon, approval state and note.                                                                              |
-| `exclusions`          | Row ID, start/end mm, reason, optional polygon for physical obstruction checks.                                                                                  |
-| `slots`               | Stable ID, event/layout/stretch IDs, code, interval, dimensions, polygon, base price, nullable override, blocked flag/reason, revision.                          |
-| `guest_sessions`      | Hashed private token, expiry, session metadata; authorizes guest order access.                                                                                   |
-| `orders`              | Event ID, guest session ID, reference, customer snapshot, state, total IDR, checkout idempotency key, confirmed time.                                            |
-| `order_items`         | Order/slot IDs plus immutable code, route, dimensions, footprint, and unit price snapshots.                                                                      |
-| `reservations`        | Order ID, server deadline, reconciliation state, finalized/released timestamps.                                                                                  |
-| `slot_claims`         | Reservation/slot IDs, held/sold state, nullable release time; durable exclusive ownership.                                                                       |
-| `payment_attempts`    | Order ID, unique provider order ID, provider transaction ID, creation state, raw provider status, normalized status, token reference, deadline, next check time. |
-| `payment_events`      | Attempt ID, deduplication key, received time, sanitized event/status evidence, processing result.                                                                |
-| `audit_logs`          | Actor, event/entity IDs, operation, previous/new values, timestamp, request correlation ID.                                                                      |
+| Record                | Important fields and responsibility                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Better Auth tables    | Persisted user, session, account, and verification records managed through reviewed migrations.                                                                                                      |
+| Admin role assignment | Server-provisioned role tied to the auth user; no public admin signup or client-editable role.                                                                                                       |
+| `events`              | ID, slug, name, dates, timezone, booking window, sales state, default price/dimensions, active layout ID, `booking_started_at`.                                                                      |
+| `layout_versions`     | Event ID, version, draft/published/retired state, revision, approval metadata, published time.                                                                                                       |
+| `routes`              | Layout ID, name, display order; organizational grouping.                                                                                                                                             |
+| `booth_rows`          | Route ID, line geometry, fixed direction, footprint side, label.                                                                                                                                     |
+| `approved_stretches`  | Row ID, start/end mm, default frontage/depth mm, approved polygon, approval state and note.                                                                                                          |
+| `exclusions`          | Row ID, start/end mm, reason, optional polygon for physical obstruction checks.                                                                                                                      |
+| `slots`               | Stable ID, event/layout/stretch IDs, code, order/interval, stored base frontage/depth mm, nullable dimension overrides, polygon, base price, nullable price override, blocked flag/reason, revision. |
+| `guest_sessions`      | Hashed private token, expiry, session metadata; authorizes guest order access.                                                                                                                       |
+| `orders`              | Event ID, guest session ID, reference, customer snapshot, state, total IDR, checkout idempotency key, confirmed time.                                                                                |
+| `order_items`         | Order/slot IDs plus immutable code, route, dimensions, footprint, and unit price snapshots.                                                                                                          |
+| `reservations`        | Order ID, server deadline, reconciliation state, finalized/released timestamps.                                                                                                                      |
+| `slot_claims`         | Reservation/slot IDs, held/sold state, nullable release time; durable exclusive ownership.                                                                                                           |
+| `payment_attempts`    | Order ID, unique provider order ID, provider transaction ID, creation state, raw provider status, normalized status, token reference, deadline, next check time.                                     |
+| `payment_events`      | Attempt ID, deduplication key, received time, sanitized event/status evidence, processing result.                                                                                                    |
+| `audit_logs`          | Actor, event/entity IDs, operation, previous/new values, timestamp, request correlation ID.                                                                                                          |
 
 ### Database invariants
 
@@ -174,7 +198,7 @@ Blocking and pricing remain independent operations on unclaimed inventory. Event
 - One logical checkout idempotency key per guest session yields one order. Reusing it with a different payload is a conflict.
 - A partial unique index on `slot_claims(slot_id)` where `released_at IS NULL` prevents more than one active claim, including sold claims.
 - Released claims remain as history. Sold claims are not released by ordinary expiry cleanup.
-- Positive price and dimension checks are enforced in the database as well as the server.
+- Positive base/override price and dimension checks are enforced in the database as well as the server. A slot interval must match its effective frontage; persist interval/geometry changes atomically and reject invalid mixed-size layouts.
 - Store whole IDR amounts as integers, never floating-point currency. Enforce a supported upper bound so API number serialization remains exact.
 - Store timestamps as `timestamptz`; render using the event timezone, proposed `Asia/Jakarta` for the demo.
 - Foreign keys and event/layout consistency checks prevent cross-event orders or references to another event's slots. Use composite keys where necessary, not UI filters alone.
@@ -361,7 +385,7 @@ Confidence is high that one full-stack application fits this prototype. Confiden
 
 ## 14. Implementation verification plan
 
-- Unit-check integer interval subtraction, slot counts/remainders, effective pricing, and state transition rules.
+- Unit-check integer interval subtraction, uniform and mixed-width counts/remainders, decimal-meter normalization, dimension override/reset and reflow, overflow rollback, independent effective pricing, and state transition rules.
 - Exercise PostGIS validity/containment/collision checks against representative corners and access gaps.
 - Run concurrent allocation tests against real PostgreSQL on an isolated test branch; assert the active-claim unique constraint and all-or-nothing selection behavior.
 - Race price/block/publish changes against reservation, including stale revisions and deterministic locking.
@@ -369,4 +393,5 @@ Confidence is high that one full-stack application fits this prototype. Confiden
 - Use Sandbox end-to-end tests to establish actual expiry behavior for each enabled payment method and the release path for unused Snap sessions.
 - Verify private order authorization, forbidden admin access, protected jobs, and absence of secrets/PII in public GeoJSON and logs.
 - Verify both inventory views, mixed-price checkout, map failure fallback, mobile checkout, dashboard totals, and the illustrative-data labels.
+- Verify street/satellite switching with overlays and unsaved editor work intact, source-aware tile requests, close-zoom slot hit detection, fit/focus actions, and stable viewport during availability refresh.
 - Run the repository build, lint, type checking, and focused tests once corresponding code exists. This documentation task does not establish that those implementation checks pass.
