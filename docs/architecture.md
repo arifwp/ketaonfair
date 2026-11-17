@@ -19,37 +19,37 @@ Repository observations on 17 November 2026:
 
 - `package.json` already includes React 19, TanStack Start/Router/Query/Table, TypeScript, Vite, Nitro, Tailwind CSS, Better Auth, Zustand, and the Neon serverless driver.
 - `components.json` contains shadcn configuration. This does not establish a complete component library.
-- `src/db.ts` contains a Neon HTTP query helper. It does not implement booking transactions.
+- `src/server/db` now owns the Drizzle schema and request-scoped Neon WebSocket pool factory. The obsolete `src/db.ts` HTTP demo helper was removed.
 - `src/lib/auth.ts` enables Better Auth email/password and TanStack cookies, but has no persistent database adapter or admin authorization configuration.
-- `db/init.sql` is a todo demo schema. There is no booking schema in that file.
+- `db/migrations` and `db/seeds` now contain the B01 booking schema, PostGIS validation, immutable snapshots, and illustrative inventory. The obsolete todo `db/init.sql` was removed. Isolated-branch evidence is recorded in [foundation verification](./booking-foundation-verification.md).
 - `vite.config.ts` uses Nitro. No hosting provider or deployed runtime has been verified for this architecture.
 
 Installed packages and scaffold files are not proof of working integrations. Keep the repository lockfile as the version reference; check compatibility when adding the planned packages.
 
-| Layer                                | Technology / decision                                                  | Current position and purpose                                                             |
-| ------------------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Application                          | React + TypeScript + TanStack Start                                    | Existing scaffold; shared customer/admin application.                                    |
-| Routing                              | TanStack Router                                                        | Existing; portal, admin, auth, webhook, and job routes.                                  |
-| Server operations                    | TanStack Start server functions and server routes                      | Existing framework; implement authenticated services and integration endpoints.          |
-| Server-state cache                   | TanStack Query                                                         | Existing; availability, orders, metrics, invalidation, and polling.                      |
-| Client selection                     | Zustand                                                                | Existing; shared selected IDs and view state, never authoritative availability.          |
-| Styling and components               | Tailwind CSS + shadcn/ui + Lucide                                      | Existing packages/config; create reusable form, table, status, and dialog components.    |
-| Admin tables                         | TanStack Table                                                         | Existing; pricing, inventory, and order filtering.                                       |
-| Map renderer                         | MapLibre GL JS + `react-map-gl/maplibre`                               | Add; clickable GeoJSON inventory and geographic context.                                 |
-| Basemap                              | MapTiler streets + satellite layer switcher                            | Proposed provider; key, local coverage, attribution, and usage limits need verification. |
-| Layout drawing                       | Terra Draw + `terra-draw-maplibre-gl-adapter`                          | Add; edit source rows and approved-area geometry.                                        |
-| Geometry preview                     | Focused Turf.js modules                                                | Add; row slicing, distances, and draft generation helpers.                               |
-| Authoritative spatial validation     | PostGIS                                                                | Enable in the chosen database; validate footprints and approved areas.                   |
-| Database                             | Neon managed PostgreSQL                                                | User-selected; one store for inventory, orders, auth, and audit records.                 |
-| Schema and migrations                | Drizzle ORM + Drizzle Kit                                              | Add; typed relational queries and committed migrations, with SQL for spatial operations. |
-| Transaction driver                   | Neon serverless `Pool`/`Client` with Drizzle's Neon serverless adapter | Driver installed; add interactive transaction path for checkout and admin mutations.     |
-| Authentication                       | Existing Better Auth, persisted in Neon                                | Complete adapter, migrations, sessions, and server-assigned admin role.                  |
-| Input validation                     | Zod                                                                    | Add; server-validated IDs, quotes, money, dimensions, and geometry payload limits.       |
-| Payment — later phase                | Midtrans Snap, starting with Sandbox                                   | Deferred; not installed/configured or required for the prototype.                        |
-| Runtime                              | Node-compatible Nitro deployment                                       | Preserve current build approach; hosting provider remains open.                          |
-| Payment reconciliation — later phase | Host scheduler and authenticated reconciliation route                  | Deferred with payments. Prototype reservations do not automatically expire.              |
-| Analytics                            | PostgreSQL aggregate queries; simple React/SVG chart                   | Build in app; no separate analytics service.                                             |
-| Verification                         | Vitest + real test-branch PostgreSQL checks + Playwright               | Planned development tools for geometry, allocation, payment, and end-to-end flows.       |
+| Layer                                | Technology / decision                                                  | Current position and purpose                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Application                          | React + TypeScript + TanStack Start                                    | Existing scaffold; shared customer/admin application.                                       |
+| Routing                              | TanStack Router                                                        | Existing; portal, admin, auth, webhook, and job routes.                                     |
+| Server operations                    | TanStack Start server functions and server routes                      | Existing framework; implement authenticated services and integration endpoints.             |
+| Server-state cache                   | TanStack Query                                                         | Existing; availability, orders, metrics, invalidation, and polling.                         |
+| Client selection                     | Zustand                                                                | Existing; shared selected IDs and view state, never authoritative availability.             |
+| Styling and components               | Tailwind CSS + shadcn/ui + Lucide                                      | Existing packages/config; create reusable form, table, status, and dialog components.       |
+| Admin tables                         | TanStack Table                                                         | Existing; pricing, inventory, and order filtering.                                          |
+| Map renderer                         | MapLibre GL JS + `react-map-gl/maplibre`                               | Add; clickable GeoJSON inventory and geographic context.                                    |
+| Basemap                              | MapTiler streets + satellite layer switcher                            | Proposed provider; key, local coverage, attribution, and usage limits need verification.    |
+| Layout drawing                       | Terra Draw + `terra-draw-maplibre-gl-adapter`                          | Add; edit source rows and approved-area geometry.                                           |
+| Geometry preview                     | Focused Turf.js modules                                                | Add; row slicing, distances, and draft generation helpers.                                  |
+| Authoritative spatial validation     | PostGIS                                                                | B01 enabled and exercised on an isolated branch; live site validation remains separate.     |
+| Database                             | Neon managed PostgreSQL                                                | User-selected; one store for inventory, orders, auth, and audit records.                    |
+| Schema and migrations                | Drizzle ORM + Drizzle Kit                                              | B01 implemented typed inventory/quote reads and reviewed migrations with spatial SQL.       |
+| Transaction driver                   | Neon serverless `Pool`/`Client` with Drizzle's Neon serverless adapter | B01 scopes pools to operations and verifies constraints; reservation/admin services follow. |
+| Authentication                       | Existing Better Auth, persisted in Neon                                | Complete adapter, migrations, sessions, and server-assigned admin role.                     |
+| Input validation                     | Zod                                                                    | B01 validates inventory/quote contracts; later write operations require their own schemas.  |
+| Payment — later phase                | Midtrans Snap, starting with Sandbox                                   | Deferred; not installed/configured or required for the prototype.                           |
+| Runtime                              | Node-compatible Nitro deployment                                       | Preserve current build approach; hosting provider remains open.                             |
+| Payment reconciliation — later phase | Host scheduler and authenticated reconciliation route                  | Deferred with payments. Prototype reservations do not automatically expire.                 |
+| Analytics                            | PostgreSQL aggregate queries; simple React/SVG chart                   | Build in app; no separate analytics service.                                                |
+| Verification                         | Vitest + real test-branch PostgreSQL checks + Playwright               | B01 unit/PostgreSQL checks run; browser journeys and later payment checks remain separate.  |
 
 MapLibre documents polygon click interactions, and Terra Draw lists its MapLibre adapter. These are rendering/drawing tools; the application still owns booth rules. [MapLibre example](https://maplibre.org/maplibre-gl-js/docs/examples/show-polygon-information-on-click/), [Terra Draw repository](https://github.com/JamesLMilner/terra-draw).
 
@@ -172,11 +172,15 @@ Blocking and pricing remain independent operations on unclaimed inventory. Event
 
 Implement booking, inventory, auth, and audit records for the prototype. The two payment records explicitly marked below belong to a later migration; do not create empty payment tables as a prerequisite for reservations.
 
+Single-event clarification: the user confirmed one fixed event, with no dynamic event catalog. B01 currently retains the documented `events` relation as the owner of event-level booking settings and the transaction lock. Its name and event-scoped keys are implementation details, not a requirement for multiple-event support. A singleton settings model can replace this generality in a follow-up reviewed migration; do not build event creation or switching. The active published layout is derived from `layout_versions.state` with a partial unique index, rather than a second writable active-layout pointer on the event.
+
+The user confirmed that booking opening and closing dates/times must remain dynamic and editable in the admin dashboard. Store timezone-aware timestamps in the database, display/edit them in the event timezone, and enforce `booking_opens_at <= server_now < booking_closes_at` alongside the manual booking state. Scheduled opening/closing is evaluated from saved settings and needs no timer/job. Quote reads check this now; B06 must recheck inside the reservation transaction. A02 must implement the authenticated admin editing controls, validation and persistence. Closing the window preserves existing reservations.
+
 | Record                        | Important fields and responsibility                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Better Auth tables            | Persisted user, session, account, and verification records managed through reviewed migrations.                                                                                                      |
 | Admin role assignment         | Server-provisioned role tied to the auth user; no public admin signup or client-editable role.                                                                                                       |
-| `events`                      | ID, slug, name, dates, timezone, booking window, sales state, default price/dimensions, active layout ID, `booking_started_at`.                                                                      |
+| `events`                      | Current B01 owner for the fixed event's identity, dates/timezone, booking window/state, default price/dimensions, and `booking_started_at`. Published layout is derived separately.                  |
 | `layout_versions`             | Event ID, version, draft/published/retired state, revision, approval metadata, published time.                                                                                                       |
 | `routes`                      | Layout ID, name, display order; organizational grouping.                                                                                                                                             |
 | `booth_rows`                  | Route ID, line geometry, fixed direction, footprint side, label.                                                                                                                                     |
@@ -377,15 +381,15 @@ Basemap account setup, local tile coverage, provider attribution, and hosting re
 
 Evidence for these choices is the user brief and local scaffold. No comparable product screens or user testing were used. These are engineering/product judgments with the following trade-offs.
 
-| Decision             | Alternatives considered                                          | Choice, reason, and trade-off                                                                                        |
-| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Backend boundary     | Separate API service / full-stack Start app                      | One app reduces integration work and fits the requested stack; UI and backend share deployment.                      |
-| GIS stack            | Custom GIS editor / MapLibre with drawing and geometry libraries | Compose existing tools; the project must still implement frontage rules and validation.                              |
-| Pricing model        | Rule engine / default plus explicit slot prices                  | Stored base plus optional override fits mostly uniform prices; default changes require an explicit bulk application. |
-| Customer identity    | Mandatory account / guest session                                | Guest is proposed for demo speed; cross-device recovery is deferred and private session access must be implemented.  |
-| Availability updates | Push realtime / periodic refresh                                 | Polling is enough for the initial demo; visible availability may lag, so reservation remains authoritative.          |
-| Post-sale layout     | Migrate active versions / freeze geometry                        | Freeze after the first reservation; safer and simpler, but physical changes require a later workflow.                |
-| Infrastructure       | Dedicated workers/queue / in-app services                        | Use the app and PostgreSQL for the prototype; scheduled payment reconciliation is deferred.                          |
+| Decision             | Alternatives considered                                          | Choice, reason, and trade-off                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend boundary     | Separate API service / full-stack Start app                      | One app reduces integration work and fits the requested stack; UI and backend share deployment.                                                          |
+| GIS stack            | Custom GIS editor / MapLibre with drawing and geometry libraries | Compose existing tools; the project must still implement frontage rules and validation.                                                                  |
+| Pricing model        | Rule engine / default plus explicit slot prices                  | Stored base plus optional override fits mostly uniform prices; default changes require an explicit bulk application.                                     |
+| Customer identity    | Mandatory account / guest session                                | Confirmed: customers check out without sign-in or registration. Establish a private guest session automatically; cross-device recovery remains deferred. |
+| Availability updates | Push realtime / periodic refresh                                 | Polling is enough for the initial demo; visible availability may lag, so reservation remains authoritative.                                              |
+| Post-sale layout     | Migrate active versions / freeze geometry                        | Freeze after the first reservation; safer and simpler, but physical changes require a later workflow.                                                    |
+| Infrastructure       | Dedicated workers/queue / in-app services                        | Use the app and PostgreSQL for the prototype; scheduled payment reconciliation is deferred.                                                              |
 
 Confidence is high that one full-stack application fits this prototype. Confidence in site accuracy, actual payment expiry settings, and operating policies remains unverified until field/provider tests and organizer decisions.
 

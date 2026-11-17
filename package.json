@@ -12,7 +12,13 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "node --env-file-if-exists=.env.test.local node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-booking-database.ts",
+    "db:seed": "node --env-file-if-exists=.env.local --import tsx scripts/seed-booking-inventory.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^10.3.0",
@@ -61,6 +67,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.20.0",
     "prettier": "^3.8.1",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^5.1.0"

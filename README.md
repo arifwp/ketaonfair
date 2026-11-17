@@ -1,264 +1,80 @@
-Welcome to your new TanStack Start app!
+# Ketaon Fair
 
-# Getting Started
+Customer booking and organizer administration prototype built with React, TanStack Start, TypeScript, Neon PostgreSQL/PostGIS, and the existing Nitro Node runtime. Customers do not need an account or login. Payment integration is deferred.
 
-To run this application:
+See [MVP](docs/mvp.md), [architecture](docs/architecture.md), and [progress](docs/progress.md) before extending behavior. The current implementation is the B01 database foundation. `/` remains the starter landing page; `/booking` and `/admin` are not implemented yet.
+
+## Local development
+
+Use Node.js 24 LTS (Node 22.12+ is also supported) and npm.
 
 ```bash
-npm install
+npm ci
+```
+
+Create `.env.local` using the variable names in [.env.example](.env.example), preserving existing values. Use a pooled `DATABASE_URL` for application reads and a direct `DATABASE_URL_UNPOOLED` for migrations on a dedicated development branch. Set a random `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=http://localhost:3000`. Admin persistence and roles are still A01 work.
+
+Apply reviewed migrations explicitly, then seed only on an isolated development/demo branch:
+
+```bash
+npm run db:migrate
+ALLOW_ILLUSTRATIVE_SEED=true npm run db:seed
 npm run dev
 ```
 
-# Building For Production
+Neither application startup nor ordinary requests migrate or seed the database. Migrations enable PostGIS and create the booking tables, constraints, and geometry/snapshot guards. The obsolete todo helper/schema have been removed. No payment configuration is needed.
 
-To build this application for production:
+The seed inserts 60 clearly illustrative slots across 2 routes, with access gaps, 1.2/1.5/2.1 m frontages, depth overrides, and independent prices. Dates are relative to the first seed execution. It is insert-only and repeat execution leaves existing bookings untouched. Geometry is synthetic UTM zone 49S data transformed to WGS84, not surveyed site inventory. Fixture prices are not approved business prices.
+
+For a fresh dataset, create a new disposable branch and apply migrations/seed there. There is deliberately no destructive reset command. Do not truncate history or reset a shared/live branch.
+
+## Database changes
+
+The schema owner is [schema.ts](src/server/db/schema.ts). Generate relational changes with Drizzle, and review the resulting SQL and snapshots:
 
 ```bash
-npm run build
+npm run db:generate -- --name=describe-the-change
+npm exec drizzle-kit -- check
 ```
 
-## Styling
+Use `npm run db:generate -- --custom --name=describe-the-change` for PostGIS functions/triggers unsupported by the schema generator. Keep applied migrations immutable. Do not use schema push against a shared database.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+The active published layout is derived from `layout_versions.state`, protected by a partial unique index per event. Availability is derived from publication, blocking, and active claims. Slot prices and dimensions use independent overrides. Geometry changes are checked at transaction commit, allowing a complete atomic reflow in the later editor. Services must lock the event before updating rows/slots, then lock slots in stable ID order.
 
-### Removing Tailwind CSS
+Read services live under `src/server/services`; client-safe contracts and `createServerFn` wrappers live in their owning features. The installed TanStack Start version uses `.validator(...)`, despite older skill examples using `.inputValidator(...)`. Public inventory contains no guest/customer identifiers. Inventory and quote wrappers return `Cache-Control: no-store`. Quotes do not claim inventory and must be revalidated by B06 at reservation time.
 
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
-
-## Linting & Formatting
-
-
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
+## Verification
 
 ```bash
 npm run lint
-npm run format
-npm run check
+npm run typecheck
+npm test
+npm run build
 ```
 
+CI runs these checks using Node 24. Build output is excluded from linting; source checks remain enabled. The build currently emits upstream module-directive warnings. A successful build does not demonstrate customer booking or admin behavior.
 
-## Deploy with Nitro
+PostgreSQL integration tests require a **separate disposable Neon branch**, with direct and pooled URLs for that same branch. Put these variables in the ignored `.env.test.local`:
 
-This project uses Nitro as a generic server adapter, so it can run on any Node-compatible host.
+```dotenv
+TEST_DATABASE_URL=postgresql://USER:PASSWORD@TEST-ENDPOINT-pooler.REGION.aws.neon.tech/neondb?sslmode=require
+TEST_DATABASE_URL_UNPOOLED=postgresql://USER:PASSWORD@TEST-ENDPOINT.REGION.aws.neon.tech/neondb?sslmode=require
+TEST_DATABASE_BRANCH_ID=br-YOUR-DISPOSABLE-BRANCH
+```
+
+```bash
+npm run test:integration
+```
+
+This command applies migrations, seeds illustrative inventory if absent, and exercises real PostgreSQL constraints, concurrent claim uniqueness, spatial validation, snapshot immutability, and inventory/quote reads. It never falls back to `DATABASE_URL`. It intentionally mutates the test branch and retains synthetic history; do not point it at live/shared-demo data. CI integration checks can be run manually with dedicated disposable-branch secrets, as configured in [checks.yml](.github/workflows/checks.yml).
+
+The locally prepared test environment is separate from `.env.local`; no application database target was overwritten. Current validation details and the temporary branch lifecycle are recorded in [booking foundation verification](docs/booking-foundation-verification.md).
+
+## Run the Node build
 
 ```bash
 npm run build
-node .output/server/index.mjs
+node --env-file-if-exists=.env.local .output/server/index.mjs
 ```
 
-The build output is a self-contained Node server. To deploy, push the `.output/` directory to your host (Render, Fly.io, your own VPS, etc.) and run the server command above.
-
-For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tuning, see https://v3.nitro.build/deploy.
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## Setting up Better Auth
-
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   npx -y @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-npx -y @better-auth/cli migrate
-```
-
-
-## Setting up Neon
-
-Create a database in the [Neon console](https://console.neon.tech), then set
-`DATABASE_URL` in `.env.local` to its connection string. For a temporary claimable
-database, Neon also provides `npx neon@latest claim create`.
-
-To load the demo schema and data, run `db/init.sql` in the Neon SQL editor.
-
-`npm run dev` does not create or seed a database. The deprecated
-`vite-plugin-neon-new` package was removed because its Vite peer dependency
-excludes Vite 8.
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+Hosting, live deployment, map-provider configuration, persistent admin authentication, and payment acceptance remain separate work.

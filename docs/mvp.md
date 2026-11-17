@@ -22,10 +22,13 @@ The MVP must demonstrate both the customer reservation and the admin operation. 
 - An admin dashboard with slot adjustment, price generation, individual slot prices, basic analytics, and monitoring.
 - Most slots share a price and size, while individual slots can have different prices and dimensions. Frontage examples include 1.2 m and 2.1 m.
 - A customer portal with a slot view, map view, multiple-slot selection, and checkout.
+- The application serves one fixed event. Multiple-event creation, switching, and management are outside scope. A database configuration record does not imply a dynamic event catalog.
+- Booking opening and closing dates/times are dynamic settings editable in the admin dashboard. Evaluate the saved schedule in the event timezone; accept new reservations at or after opening and strictly before closing. Closing bookings does not cancel existing reservations.
+- Customers can check out and book slots without signing in or creating an account. Guest checkout is confirmed; admin access still requires authentication.
 - The map must offer satellite imagery, preserve slot overlays across basemaps, and support close zoom for inspecting available slots and adjusting the draft layout.
 - `/` is the event landing page. `/booking` is the customer booking entry point and the focus of the upcoming portal implementation.
 - `/admin` is the authenticated admin dashboard entry point for slot management, pricing, analytics, and monitoring.
-- Routes and permitted frontage vary between events, with explicit gaps around unavailable areas.
+- Routes and permitted frontage are defined for the fixed event, with explicit gaps around unavailable areas.
 - Configurable frontage length per slot, including 1.2 m, 1.5 m, 2 m, and 2.1 m; do not restrict input to a fixed preset list.
 - Preferred application stack of React, TanStack Start, and TypeScript with Neon. Midtrans is planned for a later phase.
 - Build customer booking and the admin dashboard first. Defer payment integration and provider-specific monitoring.
@@ -37,9 +40,8 @@ These choices make the draft actionable. They are not previously confirmed busin
 
 | Topic                 | Proposed MVP default                                                                                               | Consequence                                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Organizer scope       | One organizer, with one event in the initial demo                                                                  | Keep event IDs in the model; defer a multi-organization platform.                                                         |
+| Organizer scope       | One organizer                                                                                                      | A multi-organization platform is outside scope; the event is fixed as confirmed above.                                    |
 | Rental period         | A slot is booked for the entire event                                                                              | No daily, hourly, or session inventory.                                                                                   |
-| Customer identity     | Guest checkout with a private browser session                                                                      | No customer account requirement; losing that session requires organizer assistance.                                       |
 | Admin identity        | Authenticated organizer admin                                                                                      | Customer access never grants admin privileges.                                                                            |
 | Multiple selection    | Any available slots within the same event                                                                          | Do not imply separated slots form one continuous booth.                                                                   |
 | Slot size             | Common generation dimensions per approved stretch, with individual slot overrides                                  | Different-sized slots can share a stretch; customers buy the published dimensions.                                        |
@@ -243,6 +245,7 @@ Opening checkout or selecting slots does not reserve inventory. Submitting the f
 
 Checkout requirements:
 
+- Do not require customer sign-in or registration. Establish a private guest session automatically to authorize submission and later booking access.
 - The server calculates totals; browser-submitted prices are not authoritative.
 - A repeated submission returns the same booking for that checkout idempotency key. Reusing a key with a changed selection is a conflict.
 - If the request times out, retry with the same key to recover its result rather than creating another booking. Do not report success until persistence is verified.
@@ -256,7 +259,7 @@ Display the booking reference, contact/business name, event, exact slots and dim
 
 Distinguish **Reserved** from **Cancelled**, submission errors, and access denied. Always state that payment is not integrated and no payment was collected. Do not label a reservation as paid, sold, or financially confirmed.
 
-Only the owning guest session or an authenticated admin can read private booking details. A reference by itself is not authorization. Provide a copyable reference for contacting the organizer. Cross-device recovery and customer accounts are deferred.
+Only the owning guest session or an authenticated admin can read private booking details. A reference by itself is not authorization. Provide a copyable reference for contacting the organizer. Losing the private browser session requires organizer assistance. Cross-device recovery and customer accounts are deferred.
 
 ## 7. Availability and reservation rules
 
@@ -356,7 +359,6 @@ Suggested demo size is 50–100 illustrative slots over two route groups with ac
 | Decision                                                       | Proposed direction                                                           | Needed by                                                         |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Rental period and adjacency                                    | Full event; allow separated slots                                            | Before schema/selection rules.                                    |
-| Guest versus customer accounts                                 | Guest for prototype; authenticated admin                                     | Before checkout and private access.                               |
 | Prototype reservation release                                  | Persist until explicit admin cancellation with a reason; no automatic expiry | Before reservation lifecycle implementation.                      |
 | Language and customer fields                                   | Indonesian; contact, business, email, phone                                  | Before portal forms.                                              |
 | Demo hosting                                                   | Node-compatible HTTPS hosting and isolated Neon demo branch                  | Before shared prototype; payment scheduler is not a prerequisite. |

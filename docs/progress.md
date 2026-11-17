@@ -6,21 +6,27 @@ Requirements: [MVP](./mvp.md) · [Architecture](./architecture.md) · [Engineeri
 
 ## Current record
 
-**Total prototype completion: 3.00%.**
+**Total prototype completion: 14.00%.**
 
-| Area                               | Share of prototype | Area completion | Contribution to total      |
-| ---------------------------------- | ------------------ | --------------- | -------------------------- |
-| Foundation and brand configuration | 5%                 | 60.00%          | 3.00 percentage points     |
-| Customer booking flow              | 52%                | 0.00%           | 0.00 percentage points     |
-| Admin dashboard and management     | 39%                | 0.00%           | 0.00 percentage points     |
-| Integrated demo verification       | 4%                 | 0.00%           | 0.00 percentage points     |
-| **Total prototype**                | **100%**           | **3.00%**       | **3.00 percentage points** |
+| Area                               | Share of prototype | Area completion | Contribution to total       |
+| ---------------------------------- | ------------------ | --------------- | --------------------------- |
+| Foundation and brand configuration | 5%                 | 100.00%         | 5.00 percentage points      |
+| Customer booking flow              | 52%                | 17.31%          | 9.00 percentage points      |
+| Admin dashboard and management     | 39%                | 0.00%           | 0.00 percentage points      |
+| Integrated demo verification       | 4%                 | 0.00%           | 0.00 percentage points      |
+| **Total prototype**                | **100%**           | **14.00%**      | **14.00 percentage points** |
 
 Planning artifacts have been written: MVP, architecture, engineering instructions, primary-color direction, and this tracker. Documentation and installed dependencies do not count as completed booking/admin functionality.
 
-Current evidence: the source contains the starter `/` page and auth HTTP handler, but no `/booking` or `/admin` page. `db/init.sql` contains the todo example, not the reservation model. Better Auth has no persistence adapter or admin-role implementation. Map/GIS/database/testing packages are declared, but their product integration is not demonstrated.
+Current evidence: F01 checks and B01 database foundation are verified. Reviewed Drizzle migrations, 60 published illustrative slots, typed inventory/quote reads, and PostgreSQL constraint/spatial/snapshot checks run on an isolated Neon branch. The todo helper/schema are removed. The source still contains the starter `/` page and auth HTTP handler, with no `/booking` or `/admin` page. Better Auth persistence/admin roles and map integration remain unimplemented. See [verification evidence](./booking-foundation-verification.md).
 
-**Next task: B01 — implement the minimum booking schema, migrations, and illustrative published inventory.** This unblocks the customer flow without waiting for the admin editor. Keep initial schema work limited to the booking slice and required inventory/auth contracts; do not build payment infrastructure.
+**Next task: B02 and B04 — implement the `/booking` slot browser and shared selection/filtering using the database inventory contract.** Configure an isolated application development target, preserve `/` as the landing page, and implement honest loading/empty/error states and mobile/keyboard behavior. B03 map configuration follows without blocking slot browsing. Payment integration stays deferred.
+
+Confirmed customer access: checkout and slot booking require no customer login or account creation. Establish a private guest session automatically for booking ownership; admin authentication remains separate. This decision does not complete an implementation gate.
+
+Confirmed event scope: one fixed event, with no event creation/switching UI. B01 retains the architecture's `events` storage for booking settings; a singleton settings relation is a possible simplification, not a prerequisite for the slot browser or evidence of multi-event product scope.
+
+Confirmed booking controls: admins must be able to set/change booking opening and closing dates/times in the dashboard. B01 persists these settings and checks the schedule in quote reads. A02 admin UI/mutations and B06 reservation-time enforcement remain unimplemented; these confirmations add no completed gates.
 
 ## How percentages work
 
@@ -30,7 +36,7 @@ Current evidence: the source contains the starter `/` page and auth HTTP handler
 - Weights are initial planning allocations, not measured hours or delivery-date estimates. They sum to 100. Change them only when scope changes, record why, and recalculate previous/current totals consistently.
 - `Total completion = Σ(feature weight × feature completion) / 100`.
 - `Area completion = Σ(area feature weight × feature completion) / Σ(area feature weight)`.
-- Current calculation: `(4 × 50 + 1 × 100 + all remaining weights × 0) / 100 = 3.00%`.
+- Current calculation: `(4 × 100 + 1 × 100 + 9 × 100 + all remaining weights × 0) / 100 = 14.00%`.
 - Deferred work has a displayed percentage for visibility but no weight in the prototype denominator. Completing the prototype does not imply payment readiness or production readiness.
 - Status labels: **Not started**, **In progress**, **Blocked**, **Complete**, or **Deferred**. Do not call a feature complete before all four gates pass. Record blockers without inventing progress.
 
@@ -38,9 +44,9 @@ Current evidence: the source contains the starter `/` page and auth HTTP handler
 
 | ID        | Priority / area       | Feature                                                          | Weight   | Completed gates | Completion | Status          |
 | --------- | --------------------- | ---------------------------------------------------------------- | -------- | --------------- | ---------- | --------------- |
-| F01       | Foundation            | Framework, routing/query foundation, and development checks      | 4%       | 2/4             | 50%        | In progress     |
+| F01       | Foundation            | Framework, routing/query foundation, and development checks      | 4%       | 4/4             | 100%       | Complete        |
 | F02       | Foundation            | Primary brand token configuration                                | 1%       | 4/4             | 100%       | Complete        |
-| B01       | P1 — Booking          | Booking schema, migrations, and illustrative published inventory | 9%       | 0/4             | 0%         | Not started     |
+| B01       | P1 — Booking          | Booking schema, migrations, and illustrative published inventory | 9%       | 4/4             | 100%       | Complete        |
 | B02       | P1 — Booking          | `/booking` route and slot browser                                | 8%       | 0/4             | 0%         | Not started     |
 | B03       | P1 — Booking          | Street/satellite map, slot overlays, zoom and focus              | 9%       | 0/4             | 0%         | Not started     |
 | B04       | P1 — Booking          | Shared multi-slot selection, filters, and total                  | 6%       | 0/4             | 0%         | Not started     |
@@ -56,13 +62,13 @@ Current evidence: the source contains the starter `/` page and auth HTTP handler
 | A07       | P2 — Admin            | Booking monitoring, cancellation, and audit history              | 4%       | 0/4             | 0%         | Not started     |
 | A08       | P2 — Admin            | Reservation analytics and operational refresh state              | 3%       | 0/4             | 0%         | Not started     |
 | Q01       | P3 — Verification     | Integrated customer/admin demo and handoff                       | 4%       | 0/4             | 0%         | Not started     |
-| **Total** | **Current prototype** | **Weighted completion**                                          | **100%** | **6/72**        | **3.00%**  | **In progress** |
+| **Total** | **Current prototype** | **Weighted completion**                                          | **100%** | **12/72**       | **14.00%** | **In progress** |
 
-The unweighted gate count is shown for auditability, not used as the overall percentage. Product features B01–A08 are currently at 0%; the 3% total reflects limited foundation/configuration work only.
+The unweighted gate count is shown for auditability, not used as the overall percentage. B01 is complete at the database-foundation level; B02–A08 remain at 0%. The 14% total does not imply a working booking journey or deployed prototype.
 
 ## Execution order
 
-1. **Prepare the smallest booking foundation.** Finish essential F01 tooling as work requires it, implement B01, and provide a clearly illustrative mixed-size/mixed-price event fixture. Record the chosen guest and reservation-lifecycle defaults before implementing them. Keep credentials out of fixtures.
+1. **Prepare the smallest booking foundation.** Finish essential F01 tooling as work requires it, implement B01, and provide a clearly illustrative mixed-size/mixed-price event fixture. Use confirmed guest checkout without customer login; record the reservation-lifecycle choice before implementing it. Keep credentials out of fixtures.
 2. **Make `/booking` usable.** Implement B02 and B04, then B03: slot browser, shared selection/filtering, street/satellite map, overlay persistence, and close zoom. A map-provider dependency should not stop the accessible slot browser from progressing.
 3. **Complete the persisted reservation journey.** Implement B05–B07, including atomic allocation, quote changes, duplicate/timeout recovery, guest ownership, and the explicit no-payment result. Add critical behavior checks with these features rather than postponing all testing.
 4. **Build the admin shell and configuration.** Implement A01–A02. Keep sign-in outside any already-authenticated layout to avoid redirect loops.
@@ -78,8 +84,8 @@ No delivery dates are assumed. Start the next dependent task once its prerequisi
 
 - [x] React, TanStack Start, and strict TypeScript are configured. Evidence: [package.json](../package.json), [tsconfig.json](../tsconfig.json).
 - [x] Router and SSR Query integration are wired with a new QueryClient created by the context factory. Evidence: [router.tsx](../src/router.tsx), [root-provider.tsx](../src/integrations/tanstack-query/root-provider.tsx). This is a source-level check, not a runtime isolation test.
-- [ ] Lint, typecheck, and build pass for the implementation baseline; record commands and results. Earlier build success is not counted as a fresh check after dependency changes.
-- [ ] Focused test scripts/configuration and repeatable developer setup are implemented and demonstrated. Installed test packages alone do not pass this gate.
+- [x] Lint, typecheck, and build pass for the implementation baseline. Evidence: `npm run lint`, `npm exec tsc -- --noEmit`, and `npm run build` passed on 17 November 2026; upstream bundler warnings remain. See [verification](./booking-foundation-verification.md).
+- [x] Focused test scripts/configuration and repeatable developer setup are implemented and demonstrated. Evidence: [package.json](../package.json), [README](../README.md), [Vitest config](../vitest.config.ts), [integration config](../vitest.integration.config.ts), and [CI checks](../.github/workflows/checks.yml). `npm test` passed 3 tests and `npm run test:integration` passed 10 tests. GitHub CI execution is not claimed.
 
 ### F02 — Primary brand token configuration
 
@@ -92,10 +98,10 @@ No delivery dates are assumed. Start the next dependent task once its prerequisi
 
 Prerequisite: existing foundation; decisions in the MVP remain visible as proposed until selected for implementation.
 
-- [ ] Reviewed migrations define required event/layout/slot, guest-session, booking/item, reservation/claim, and audit records with no payment tables.
-- [ ] Required constraints, active-claim uniqueness, and spatial validation are applied and inspected on an isolated database branch.
-- [ ] An explicit seed provides published illustrative inventory, route groups, access gaps, mixed sizes including 1.2 m/2.1 m, and independent price overrides.
-- [ ] Typed inventory reads and immutable quote data come from the database and have focused verification; the todo schema is no longer used for booking.
+- [x] Reviewed migrations define required event/layout/slot, guest-session, booking/item, reservation/claim, and audit records with no payment tables. Evidence: [schema](../src/server/db/schema.ts), [relational migration](../db/migrations/0001_booking-foundation.sql), and [spatial/snapshot guards](../db/migrations/0002_booking-spatial-and-snapshot-guards.sql). `npm exec drizzle-kit -- check` passed.
+- [x] Required constraints, active-claim uniqueness, and spatial validation are applied and inspected on isolated Neon branch `br-broad-shape-b3uilbrj`. Evidence: [PostgreSQL integration tests](../tests/integration/booking-foundation.test.ts) and [verification](./booking-foundation-verification.md). The concurrent claim check proves the database constraint, not B06 service behavior.
+- [x] An explicit seed provides 60 published illustrative slots, 2 route groups, access gaps, mixed sizes including 1.2 m/2.1 m, and independent price overrides. Evidence: [insert-only seed](../db/seeds/illustrative-booking-inventory.ts); repeated execution preserves existing data.
+- [x] Typed inventory reads and immutable quote/item data come from the database with focused verification. Evidence: [inventory service](../src/server/services/published-booking-inventory.server.ts), [quote service](../src/server/services/booking-quote.server.ts), and [integration tests](../tests/integration/booking-foundation.test.ts). The obsolete todo helper/schema were removed. RPC wrappers await route/HTTP verification in B02/B05.
 
 ### B02 — Booking route and slot browser
 
@@ -164,9 +170,9 @@ Prerequisite: B01 schema conventions; this is the first admin implementation tas
 
 Prerequisite: A01.
 
-- [ ] Event name/dates/timezone, map context, and booking window can be edited and persisted.
+- [ ] The fixed event's settings and map context can be edited and persisted, including admin-configurable booking opening/closing dates and times displayed in the event timezone. No event creation or switching UI.
 - [ ] Default dimensions and price validate correctly and act as templates, without silently modifying existing inventory.
-- [ ] Opening/closing bookings is authoritative on the server and does not cancel existing reservations.
+- [ ] Opening/closing bookings is authoritative on the server: automatically accept from the saved opening instant until the closing instant, respecting manual closure and subsequent admin schedule changes. Closing does not cancel existing reservations.
 - [ ] Invalid input, stale update, unauthorized access, and persistence failures are verified with recoverable UI.
 
 ### A03 — Draft layout editor
@@ -242,14 +248,15 @@ Prerequisite: the customer and admin features above; feature-level verification 
 
 ## Dependencies and unresolved choices
 
-| Item                               | Current evidence / next action                                                                                                                                                               |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Database and environment           | Driver/helper exists; connection, migration target, PostGIS enablement, and isolated test branch are not verified by this tracking task. Inspect safely during B01; never print credentials. |
-| Map provider                       | Libraries are declared, but map credentials, site coverage, native tile zoom, and attribution are unverified. Confirm during B03 without blocking B02/B04.                                   |
-| Guest and cancellation lifecycle   | Guest session plus persistent reservation/admin cancellation is proposed in the MVP, not a live operating policy. Record the implementation choice and limits before B06/A07.                |
-| Interface language/customer fields | Indonesian and the listed contact/business fields remain proposed defaults. Resolve before final form copy; avoid treating a prototype assumption as a confirmed policy.                     |
-| Actual site layout                 | Use explicit illustrative geometry until frontage, access permissions, reference points, and physical numbering are measured/approved.                                                       |
-| Deployment                         | Nitro build approach exists; a shared host/environment has not been verified. No payment scheduler is required now.                                                                          |
+| Item                               | Current evidence / next action                                                                                                                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database and environment           | B01 verified on isolated branch `br-broad-shape-b3uilbrj`; ignored `.env.test.local` contains test credentials. Branch expires 24 November 2026 at 19:00 Asia/Jakarta. Application `.env.local` database target remains to be configured; staging/production were not migrated. |
+| Map provider                       | Libraries are declared, but map credentials, site coverage, native tile zoom, and attribution are unverified. Confirm during B03 without blocking B02/B04.                                                                                                                      |
+| Customer access                    | Confirmed: no customer login or account creation for checkout/booking. Implement automatic private guest sessions and ownership checks in B01/B06/B07; admin authentication remains required.                                                                                   |
+| Cancellation lifecycle             | Persistent reservations until explicit admin cancellation remain proposed, not a confirmed live operating policy. Record the implementation choice and limits before B06/A07.                                                                                                   |
+| Interface language/customer fields | Indonesian and the listed contact/business fields remain proposed defaults. Resolve before final form copy; avoid treating a prototype assumption as a confirmed policy.                                                                                                        |
+| Actual site layout                 | Use explicit illustrative geometry until frontage, access permissions, reference points, and physical numbering are measured/approved.                                                                                                                                          |
+| Deployment                         | Nitro build approach exists; a shared host/environment has not been verified. No payment scheduler is required now.                                                                                                                                                             |
 
 No dependency is marked blocked solely because it has not yet been inspected. Mark a feature blocked only when a concrete failure or missing prerequisite prevents its next useful step, and record what resolves it.
 
@@ -257,9 +264,12 @@ No dependency is marked blocked solely because it has not yet been inspected. Ma
 
 Append records rather than rewriting earlier evidence. If a prior completion claim proves incorrect, add a correction and update the current register.
 
-| Date / timezone           | Record                                                                                            | Feature percentage change                                | Total before → after           | Evidence / verification                                                                                                                                                             | Next action                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| 2026-11-17 · Asia/Jakarta | Initial measured baseline and priority plan created; historical completion dates are not inferred | F01 baseline 50%; F02 baseline 100%; B01–Q01 baseline 0% | Not previously tracked → 3.00% | Source inspection of routes, schema, auth, Query wiring, and color tokens. White/primary contrast calculated at 5.48:1. No fresh app build, database test, or browser flow claimed. | Start B01, then B02/B04 and B03. |
+| Date / timezone           | Record                                                                                            | Feature percentage change                                | Total before → after           | Evidence / verification                                                                                                                                                                                                                                                | Next action                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 2026-11-17 · Asia/Jakarta | Initial measured baseline and priority plan created; historical completion dates are not inferred | F01 baseline 50%; F02 baseline 100%; B01–Q01 baseline 0% | Not previously tracked → 3.00% | Source inspection of routes, schema, auth, Query wiring, and color tokens. White/primary contrast calculated at 5.48:1. No fresh app build, database test, or browser flow claimed.                                                                                    | Start B01, then B02/B04 and B03.                                                   |
+| 2026-11-17 · Asia/Jakarta | Customer confirmed checkout and slot booking without login or account creation                    | No gate changes                                          | 3.00% → 3.00%                  | User clarification recorded in MVP and architecture; automatic private guest sessions remain to be implemented. No runtime behavior verified.                                                                                                                          | Start B01 with guest ownership; resolve reservation lifecycle separately.          |
+| 2026-11-17 · Asia/Jakarta | Implemented and verified booking database foundation and repeatable development checks            | F01 50% → 100%; B01 0% → 100%; other features unchanged  | 3.00% → 14.00%                 | Reviewed migrations/metadata, seed and typed reads on isolated Neon branch; 3 unit and 10 PostgreSQL integration tests, lint, typecheck and build passed. See [verification](./booking-foundation-verification.md) for scope and warnings; no browser journey claimed. | B02/B04: `/booking` slot browser, selection and filters using persisted inventory. |
+| 2026-11-17 · Asia/Jakarta | Confirmed one fixed event and admin-editable scheduled booking window                             | No additional gate changes                               | 14.00% → 14.00%                | Schedule boundary checks and persisted schedule changes verified; A02 dashboard editing and B06 reservation checks remain outstanding.                                                                                                                                 | Continue B02/B04; implement protected schedule editing in A02.                     |
 
 ## Updating this record
 
