@@ -101,12 +101,15 @@ npx -y @better-auth/cli migrate
 
 ## Setting up Neon
 
-When running the `dev` command, `vite-plugin-neon-new` will identify there is not a database setup. It will then create and seed a claimable database.
+Create a database in the [Neon console](https://console.neon.tech), then set
+`DATABASE_URL` in `.env.local` to its connection string. For a temporary claimable
+database, Neon also provides `npx neon@latest claim create`.
 
-It is the same process as [Neon Launchpad](https://neon.new).
+To load the demo schema and data, run `db/init.sql` in the Neon SQL editor.
 
-> [!IMPORTANT]  
-> Claimable databases expire in 72 hours.
+`npm run dev` does not create or seed a database. The deprecated
+`vite-plugin-neon-new` package was removed because its Vite peer dependency
+excludes Vite 8.
 
 
 
