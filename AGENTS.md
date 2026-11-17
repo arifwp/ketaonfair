@@ -5,6 +5,8 @@ These instructions apply throughout this repository. Favor developer experience,
 ## Project context
 
 - Read [the MVP](docs/mvp.md) and [the architecture](docs/architecture.md) before changing related behavior. Proposed business defaults remain proposals until confirmed.
+- Use [the progress tracker](docs/progress.md) for current priorities and evidence. After meaningful implementation/verification, update its acceptance gates, feature percentages, weighted area/total percentages, history, and next action. Do not count planning/dependencies as product completion or include deferred payments/landing work in the prototype denominator.
+- Current implementation priority is the `/booking` customer reservation flow, followed by the `/admin` prototype. Payment integration is deferred, including Sandbox, provider schema/routes, webhooks, expiry jobs, and payment monitoring. Do not make those prerequisites for booking/admin work or simulate a paid result.
 - Preserve confirmed route ownership: `/` is the event landing page, `/booking` is the customer booking portal, and `/admin` is the authenticated admin dashboard.
 - Use React, TypeScript, TanStack Start/Router, Neon PostgreSQL, and Midtrans. Retain the existing Nitro runtime unless the task changes that decision.
 - Apply the named [TanStack Start skill](/Users/arifwahyu/.codex/skills/tanstack-start/SKILL.md) to relevant routing and full-stack patterns. Its Cloudflare/D1 templates, deployment steps, dependency versions, and example redirects are not this project's configuration. Do not switch infrastructure, package managers, or public routes to match the skill.
@@ -49,9 +51,9 @@ src/
         $.ts                           # Existing Better Auth catch-all
       payments/
         midtrans/
-          notification.ts              # Proposed payment webhook
+          notification.ts              # Deferred payment phase; do not scaffold now
       jobs/
-        reconcile-payments.ts          # Proposed protected scheduled endpoint
+        reconcile-payments.ts          # Deferred payment phase; do not scaffold now
   features/
     event-landing/
     event-management/
@@ -60,7 +62,7 @@ src/
     slot-pricing/
     booking-checkout/
     booking-orders/
-    sales-analytics/
+    booking-analytics/
   components/
     ui/                                # Shared UI primitives
     layout/                            # Shared visual shells/navigation
@@ -68,8 +70,8 @@ src/
     auth/                              # Sessions and server authorization
     db/                                # Client, Drizzle schema, transactions
     services/                          # Authoritative business operations
-    payments/                          # Midtrans integration
-    jobs/                              # Reconciliation implementation
+    payments/                          # Deferred until Midtrans implementation
+    jobs/                              # Deferred payment reconciliation
   shared/                              # Client-safe cross-feature contracts/helpers
   integrations/                        # Existing framework provider integrations
   lib/                                 # Small cross-cutting framework/UI helpers
@@ -205,10 +207,11 @@ Longer names are welcome when they clarify intent. Avoid abbreviations, ambiguou
 - Reserve the complete selection or none. Browser state, optimistic UI, and polling cannot prevent double booking.
 - Use integer IDR values, integer measured dimensions with units, and timezone-aware timestamps formatted in the event timezone.
 - Treat slot size and price as independent per-slot values with common defaults and explicit overrides. Mixed-width positions use cumulative effective widths, not index times a shared width. A draft resize must atomically validate affected geometry, preserve slot identities/prices, and reject overflow without silently deleting inventory.
-- Keep local selection, held/sold inventory, order state, and provider payment state distinct.
-- Make external payment calls outside database transactions. Persist idempotent attempts; uncertain creation/status retains ownership until safely reconciled.
-- Verify notifications and provider status. Never confirm from a browser callback or release inventory from a local countdown alone.
-- Enforce layout freeze and held/sold pricing restrictions in server transactions, not just disabled buttons.
+- Keep local selection and persisted reserved inventory distinct. The prototype uses reserved/cancelled bookings with explicit `not_integrated` payment state and no automatic expiry. Proposed admin cancellation requires a reason, atomic claim release, and an audit record. Reserved does not mean paid or sold.
+- When implementing the deferred payment phase, keep held/sold inventory, order state, and provider payment state distinct. Do not build provider functionality speculatively.
+- In the payment phase, make external calls outside database transactions. Persist idempotent attempts; uncertain creation/status retains ownership until safely reconciled.
+- In the payment phase, verify notifications and provider status. Never confirm from a browser callback or release inventory from a local countdown alone.
+- Enforce layout freeze and reserved-slot pricing restrictions in server transactions, not just disabled buttons. Extend those rules to held/sold states in the payment phase.
 - Validate footprints server-side, use appropriate metric/geodesic calculations, preserve access gaps, and distinguish illustrative geometry from measurements.
 - Commit reviewable migrations, preserve applied migration history, and test database changes in isolation. Do not run destructive resets against shared/live data or use mocks as proof of allocation constraints.
 - Introduce additional infrastructure only for a demonstrated need and an explicit architecture decision.
@@ -226,7 +229,7 @@ Scale checks to the change. Documentation edits need formatting/link checks, not
 7. Keep behavior docs, safe environment examples, migration/setup instructions, and executable CI checks aligned as implementation introduces them.
 8. Report changes, passing checks, and remaining blockers. Separate pre-existing failures from regressions and never claim unperformed checks passed. Do not disable checks or weaken assertions to force success.
 
-Production readiness requires evidence from the implemented system and target environment. These instructions set engineering requirements; they do not certify the scaffold or Sandbox demo as production-ready.
+Production readiness requires evidence from the implemented system and target environment. These instructions set engineering requirements; they do not certify the scaffold or prototype as production-ready.
 
 ## Collaboration
 

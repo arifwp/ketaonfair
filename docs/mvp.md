@@ -5,11 +5,15 @@ Status: Proposed implementation specification, not a record of completed feature
 Technical companion: [Tech stack and architecture](./architecture.md)  
 Background: [Original project conversation](./gis-event-tenant-booking-conversation-2026-11-17.md)
 
+Implementation record: [Progress tracker and prioritized plan](./progress.md).
+
 ## 1. Product objective
 
-Enable an event organizer to prepare and adjust a geographic booth layout, generate slots and prices, publish available inventory, and monitor bookings. Enable a customer to choose one or several slots through a slot view or map view, review the exact price, and pay through Midtrans.
+Prioritize the customer booking flow and admin dashboard for the prototype. Enable a customer to choose one or several slots through slot/map views, review individual dimensions and prices, enter contact details, and create a persisted reservation. Enable the organizer to adjust and publish inventory, manage prices, and monitor those reservations.
 
-The MVP must demonstrate both the admin operation and the customer transaction. A static map with decorative slots is insufficient. The distinctive capability is changing sellable frontage while preserving entrances and other access gaps.
+Payment integration is deferred. Prototype checkout ends with a booking reference and a clear "Reservation recorded — no payment collected" result. Midtrans remains the intended later payment provider, but neither Sandbox nor production integration is a prototype acceptance requirement.
+
+The MVP must demonstrate both the customer reservation and the admin operation. A static map with decorative slots is insufficient. The distinctive capability is changing sellable frontage while preserving entrances and other access gaps.
 
 ## 2. Requirements and proposed defaults
 
@@ -23,43 +27,44 @@ The MVP must demonstrate both the admin operation and the customer transaction. 
 - `/admin` is the authenticated admin dashboard entry point for slot management, pricing, analytics, and monitoring.
 - Routes and permitted frontage vary between events, with explicit gaps around unavailable areas.
 - Configurable frontage length per slot, including 1.2 m, 1.5 m, 2 m, and 2.1 m; do not restrict input to a fixed preset list.
-- Preferred application stack of React, TanStack Start, and TypeScript, with Neon and Midtrans.
+- Preferred application stack of React, TanStack Start, and TypeScript with Neon. Midtrans is planned for a later phase.
+- Build customer booking and the admin dashboard first. Defer payment integration and provider-specific monitoring.
 - A working prototype for demonstration before a live sales launch.
 
 ### Proposed defaults for the first implementation
 
 These choices make the draft actionable. They are not previously confirmed business policies.
 
-| Topic               | Proposed MVP default                                                              | Consequence                                                                         |
-| ------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Organizer scope     | One organizer, with one event in the initial demo                                 | Keep event IDs in the model; defer a multi-organization platform.                   |
-| Rental period       | A slot is booked for the entire event                                             | No daily, hourly, or session inventory.                                             |
-| Customer identity   | Guest checkout with a private browser session                                     | No customer account requirement; losing that session requires organizer assistance. |
-| Admin identity      | Authenticated organizer admin                                                     | Customer access never grants admin privileges.                                      |
-| Multiple selection  | Any available slots within the same event                                         | Do not imply separated slots form one continuous booth.                             |
-| Slot size           | Common generation dimensions per approved stretch, with individual slot overrides | Different-sized slots can share a stretch; customers buy the published dimensions.  |
-| Price unit          | A fixed IDR amount per slot for the event                                         | No automatic multiplication by length, demand pricing, or discounts.                |
-| Hold timing         | One configurable server deadline shared with the payment flow                     | Exact duration and enabled methods must be chosen and tested in Sandbox.            |
-| Layout lifecycle    | Geometry becomes fixed after the first reservation                                | Admin can still change eligible prices and block available slots.                   |
-| Fees and taxes      | No additional line items in the demo                                              | Live fees, taxes, and customer disclosures remain undecided.                        |
-| Payment environment | Midtrans Sandbox only                                                             | Any simulated payment is visibly identified as a test.                              |
-| Interface language  | Indonesian proposed for the demo audience                                         | Documentation is English; product language remains a decision.                      |
+| Topic                 | Proposed MVP default                                                                                               | Consequence                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Organizer scope       | One organizer, with one event in the initial demo                                                                  | Keep event IDs in the model; defer a multi-organization platform.                                                         |
+| Rental period         | A slot is booked for the entire event                                                                              | No daily, hourly, or session inventory.                                                                                   |
+| Customer identity     | Guest checkout with a private browser session                                                                      | No customer account requirement; losing that session requires organizer assistance.                                       |
+| Admin identity        | Authenticated organizer admin                                                                                      | Customer access never grants admin privileges.                                                                            |
+| Multiple selection    | Any available slots within the same event                                                                          | Do not imply separated slots form one continuous booth.                                                                   |
+| Slot size             | Common generation dimensions per approved stretch, with individual slot overrides                                  | Different-sized slots can share a stretch; customers buy the published dimensions.                                        |
+| Price unit            | A fixed IDR amount per slot for the event                                                                          | No automatic multiplication by length, demand pricing, or discounts.                                                      |
+| Reservation lifecycle | Proposed: persist prototype reservations until explicit admin cancellation, without an automatic payment countdown | No provider, expiry worker, or payment scheduler is required; a later hold policy must be defined before adding payments. |
+| Layout lifecycle      | Geometry becomes fixed after the first reservation                                                                 | Admin can still change eligible prices and block available slots.                                                         |
+| Fees and taxes        | No additional line items in the demo                                                                               | Live fees, taxes, and customer disclosures remain undecided.                                                              |
+| Payment integration   | Deferred, including Sandbox                                                                                        | Show "No payment collected"; no fake paid state, payment form, or provider credentials required.                          |
+| Interface language    | Indonesian proposed for the demo audience                                                                          | Documentation is English; product language remains a decision.                                                            |
 
 ## 3. Users, tasks, and success criteria
 
-| User                      | Primary task                                   | Information needed first                                                 | Intended result                          |
-| ------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------- |
-| Admin preparing inventory | Adjust frontage, exclusions, slots, and prices | Draft/published status, dimensions, conflicts, and access gaps           | Publish a valid, priced layout.          |
-| Admin monitoring sales    | Identify sales progress and exceptions         | Confirmed sales, held inventory, pending payments, and unresolved errors | Understand what needs attention.         |
-| Customer                  | Find suitable space and complete a booking     | Slot identity, location, dimensions, availability, and individual price  | Receive a verified booking confirmation. |
+| User                      | Primary task                                         | Information needed first                                                | Intended result                                                  |
+| ------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Admin preparing inventory | Adjust frontage, exclusions, slots, and prices       | Draft/published status, dimensions, conflicts, and access gaps          | Publish a valid, priced layout.                                  |
+| Admin monitoring bookings | Identify reservation progress and operational issues | Reserved/available inventory, booking details, and recent activity      | Understand what needs attention without implying paid sales.     |
+| Customer                  | Find suitable space and reserve it                   | Slot identity, location, dimensions, availability, and individual price | Receive a saved reservation reference with no payment collected. |
 
 Acceptance priorities, in order:
 
-1. Generated slots never bridge an access gap or overlap another sellable footprint.
-2. Admin can set a common price efficiently and make selected slots different.
-3. Slot and map views represent the same inventory and preserve one selection.
-4. Concurrent checkout cannot allocate the same slot twice.
-5. Payment and monitoring states reflect server records, including failures and uncertainty.
+1. Customers complete the slot/map selection, review, and reservation flow with a saved reference.
+2. Slot and map views share inventory and preserve mixed-size, mixed-price selection.
+3. Concurrent reservation requests cannot allocate the same slot twice.
+4. Admin can adjust valid draft layouts, preserve access gaps, and apply common defaults or per-slot size/price overrides.
+5. Admin monitoring reflects persisted reservations, and every booking result clearly states that payment was not collected.
 
 ## 4. Inventory model
 
@@ -87,8 +92,8 @@ The admin dashboard lives at `/admin`. Its slot management, layout editing, pric
 - Create or edit event name, dates, location, map center, and booking window.
 - Set the default slot price and the default generation dimensions.
 - Keep the event draft until layout and pricing checks pass.
-- Open or close sales independently of viewing the published layout.
-- Closing sales prevents new reservations. Existing payment attempts remain governed by their recorded deadline and status.
+- Open or close bookings independently of viewing the published layout.
+- Closing bookings prevents new reservations. Existing reservations remain recorded; closure does not cancel them. Payment attempt handling belongs to the later integration phase.
 
 ### 5.2 Layout editor and slot adjustment
 
@@ -149,9 +154,9 @@ The pricing table supports code search, route/row filters, availability filters,
 
 Display each slot's actual frontage and depth beside its price so exceptions are visible. Size and price are independent: two different-sized slots may share a price, and equal-sized slots may have different prices. A size edit does not imply an automatic price change.
 
-All prices are positive whole IDR amounts. Admin actions must reject invalid values. A bulk preview identifies ineligible slots; applying the action rechecks eligibility and reports changed and skipped counts. Held and sold slots cannot be repriced. An expired and safely released slot can be repriced again.
+All prices are positive whole IDR amounts. Admin actions must reject invalid values. A bulk preview identifies ineligible slots; applying the action rechecks eligibility and reports changed and skipped counts. Reserved slots cannot be repriced. A slot safely released by explicit cancellation can be repriced again; earlier booking snapshots remain unchanged.
 
-An order stores its own price snapshot. Later price changes cannot alter an existing order. If a customer's locally selected price changes before reservation, show the revised amount and require review before payment.
+An order stores its own price snapshot. Later price changes cannot alter an existing order. If a customer's locally selected price changes before reservation, show the revised amount and require review before submitting the reservation.
 
 Illustrative pricing example, not an actual event tariff: generate 20 slots at IDR 150,000, override A-001 to IDR 200,000, and override A-002 to IDR 175,000. The other 18 slots remain IDR 150,000.
 
@@ -159,40 +164,39 @@ Illustrative pricing example, not an actual event tariff: generate 20 slots at I
 
 - Publish only approved, valid, positively priced inventory with unique slot codes.
 - Keep draft layouts private. The portal reads only the published layout.
-- Before any reservation has existed, close sales to revise and republish geometry.
-- After the first reservation, freeze the event's published geometry, slot identities, dimensions, numbering, and membership of the layout, even if that reservation later expires.
+- Before any reservation has existed, close bookings to revise and republish geometry.
+- After the first reservation, freeze the event's published geometry, slot identities, dimensions, numbering, and membership of the layout, even if that reservation is later cancelled.
 - Allow blocking or unblocking an available slot, with a reason and audit entry.
-- Reject blocking, moving, deleting, renumbering, or regenerating a held or sold slot.
-- Require a separate future layout-change workflow for physical changes after booking begins. Do not publish a replacement version over active sales in this MVP.
+- Reject blocking, moving, deleting, renumbering, or regenerating a reserved slot. The same protection extends to held/sold inventory when payments are added.
+- Require a separate future layout-change workflow for physical changes after booking begins. Do not publish a replacement version over active reservations in this MVP.
 
-### 5.5 Orders and payment monitoring
+### 5.5 Booking monitoring
 
-- Search orders by booking reference, customer name, or business name.
-- Filter by order state, payment state, route, and date.
-- Show customer details, selected slots, item price snapshots, total, reservation deadline, payment reference, and latest status check.
-- Show payment creation errors, overdue pending payments, and reconciliation exceptions in an attention list.
-- Provide an authenticated, rate-limited payment status refresh action.
-- Record the order/payment timeline and important admin changes.
-- Do not offer a manual "mark paid" action or arbitrary release of pending paid-attempt inventory.
+- Search bookings by reference, customer name, or business name.
+- Filter by reservation state, route, and date.
+- Show customer details, exact slots/dimensions, item price snapshots, quoted total, creation time, and reservation state.
+- Show recent booking activity, inventory changes, failed saves, and refresh failures where relevant.
+- Proposed prototype control: an authenticated admin can cancel an unpaid prototype reservation with a reason. Atomically release its claims, preserve the booking history, and record the actor and reason. There is no customer self-service cancellation in this scope.
+- Never offer a manual "mark paid" action or imply the reservation has been financially settled.
+- Payment status refresh, provider references, overdue payment alerts, and reconciliation monitoring are deferred.
 
 ### 5.6 Basic analytics
 
-Metrics are event-scoped and calculated from persisted records. Pending payments are not sales.
+Metrics are event-scoped and calculated from persisted records. Prices remain useful for reviewing the reservation even while payment is deferred.
 
-| Metric                            | Definition                                                                                            |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Published inventory               | Slots in the frozen/current published layout. Draft slots are excluded.                               |
-| Available / held / sold / blocked | Mutually exclusive counts whose sum equals published inventory. Uncertain payment claims remain held. |
-| Bookable capacity                 | Published inventory minus blocked slots.                                                              |
-| Occupancy                         | Sold slots / bookable capacity. Show an empty value if capacity is zero.                              |
-| Confirmed orders                  | Orders confirmed after verified successful payment and slot allocation.                               |
-| Confirmed booking value           | Sum of price snapshots for confirmed orders. This is gross booking value, not profit or bank payout.  |
-| Pending order value               | Total for awaiting-payment orders, shown separately from confirmed value.                             |
-| Paid exceptions                   | Count and amount of verified successful payments awaiting allocation or other resolution.             |
-| Sales trend                       | Confirmed order count and booking value by confirmation date.                                         |
-| Route performance                 | Sold count, capacity, occupancy, and confirmed item value per route.                                  |
+| Metric                         | Prototype definition                                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Published inventory            | Slots in the current/frozen published layout; exclude drafts.                                             |
+| Available / reserved / blocked | Mutually exclusive counts whose sum equals published inventory.                                           |
+| Bookable capacity              | Published inventory minus blocked slots.                                                                  |
+| Reservation occupancy          | Reserved slots / bookable capacity. Show an empty value if capacity is zero.                              |
+| Active bookings                | Saved, uncancelled reservations.                                                                          |
+| Quoted reservation value       | Sum of immutable totals for active bookings. This is not revenue, collected money, or a payout.           |
+| Cancelled bookings             | Count of explicitly cancelled bookings, separate from active inventory.                                   |
+| Booking trend                  | Reservation count and quoted value by reservation date; cancelled records remain identifiable in history. |
+| Route performance              | Reserved count, capacity, reservation occupancy, and active quoted item value per route.                  |
 
-Show last refreshed time and refresh failure. Display event timezone explicitly. Proposed refresh cadence is 15 seconds while visible, plus refresh after relevant actions. The metrics are operational summaries, not an accounting ledger. A small sales chart and route table are enough for the MVP.
+Show last refreshed time and refresh failure. Display event timezone explicitly. Proposed refresh cadence is 15 seconds while visible, plus refresh after relevant actions. A small booking chart and route table are enough. Paid sales, pending payment value, paid exceptions, and provider settlement metrics are deferred.
 
 ## 6. Customer portal
 
@@ -200,7 +204,7 @@ Show last refreshed time and refresh failure. Display event timezone explicitly.
 
 The event landing page lives at `/`. The booking experience lives at `/booking`, which contains both the slot view and map view with one shared selection. The authenticated admin dashboard lives at `/admin`. Customers can open `/booking` directly; visiting the landing page first is optional.
 
-Keep event promotion and general information on the landing page, with navigation into booking. Focus the upcoming portal work on `/booking` and its booking flow. Proposed follow-on routes are `/booking/checkout` for review/payment and `/booking/orders/$bookingOrderId` for private order status; these child paths are implementation proposals rather than separately confirmed requirements.
+Keep event promotion and general information on the landing page, with navigation into booking. Focus the upcoming portal work on `/booking` and its booking flow. Proposed follow-on routes are `/booking/checkout` for contact details, quote review, and reservation submission and `/booking/orders/$bookingOrderId` for private order status; these child paths are implementation proposals rather than separately confirmed requirements.
 
 ### 6.1 Event and inventory browser
 
@@ -229,56 +233,57 @@ Statuses must be readable through text and icons as well as color. Unavailable s
 ### 6.2 Selection and checkout
 
 1. Add or remove available slots in either view.
-2. Review slot codes, locations, dimensions, individual prices, count, and total in one selection summary.
+2. Review slot codes, locations, actual dimensions, individual prices, count, and total in one selection summary.
 3. Continue to checkout and enter proposed minimum details: contact name, business name, email, and phone number.
-4. Review the final server quote and submit a reservation request.
-5. If every slot remains available and prices match the reviewed quote, reserve the entire selection atomically and prepare payment.
-6. Open Midtrans Snap and display the server-recorded payment deadline.
-7. Return to a status page that reads the server's order state until confirmation or another definitive result.
+4. Review the final server quote and submit **Reserve selected slots**.
+5. If every slot remains available and the reviewed quote is current, save the entire selection in one reservation transaction.
+6. Show a private booking status page with the reference and **Reservation recorded — no payment collected**.
 
-Opening checkout or selecting slots does not create a hold. Submitting the final reservation does. If any requested slot conflicts, reserve none and identify the unavailable items. Preserve the remaining selection for correction.
+Opening checkout or selecting slots does not reserve inventory. Submitting the final reservation does. If any requested slot conflicts, reserve none, identify unavailable items, and retain the remaining selection for correction.
 
 Checkout requirements:
 
 - The server calculates totals; browser-submitted prices are not authoritative.
-- A repeated reservation submission returns the existing result for that checkout request.
-- An unchanged pending order resumes its existing payment attempt rather than creating another payable attempt.
-- Closing Snap or closing a tab does not prove payment failure and does not release inventory.
-- Changing the selection after reservation requires safely resolving/releasing the existing attempt before creating a replacement.
-- A local countdown reaching zero shows "checking payment status" until the server resolves the attempt.
+- A repeated submission returns the same booking for that checkout idempotency key. Reusing a key with a changed selection is a conflict.
+- If the request times out, retry with the same key to recover its result rather than creating another booking. Do not report success until persistence is verified.
+- Recheck dimensions, revisions, prices, and availability before committing. Changed quotes require review and resubmission.
+- Closing the page does not cancel a saved reservation. Customer changes after submission are outside this prototype's self-service flow.
+- No payment method selector, card/bank details, Snap page, payment countdown, or fake payment-success action is included.
 
-### 6.3 Order status
+### 6.3 Booking status
 
-Display booking reference, contact/business name, event, exact slots and dimensions, item prices, total, payment state, and the next available action.
+Display the booking reference, contact/business name, event, exact slots and dimensions, item price snapshots, quoted total, reservation state, and creation time.
 
-Distinguish confirmed, awaiting payment, failed, expired, cancelled, and needs-review outcomes. A browser payment callback cannot independently confirm a booking. A paid-but-unallocated exception must say that payment was received and the booking requires organizer review, rather than falsely showing success or asking for another payment.
+Distinguish **Reserved** from **Cancelled**, submission errors, and access denied. Always state that payment is not integrated and no payment was collected. Do not label a reservation as paid, sold, or financially confirmed.
 
-Only the owning guest session or an authenticated admin can read private order details. A booking reference by itself is not authorization. Provide a copyable reference for contacting the organizer. Cross-device recovery and customer accounts are deferred.
+Only the owning guest session or an authenticated admin can read private booking details. A reference by itself is not authorization. Provide a copyable reference for contacting the organizer. Cross-device recovery and customer accounts are deferred.
 
-## 7. Availability and payment rules
+## 7. Availability and reservation rules
 
-| Concept   | Meaning                                                              |
-| --------- | -------------------------------------------------------------------- |
-| Available | Published, not blocked, and without an active claim.                 |
-| Selected  | Available slot chosen locally; no exclusive ownership.               |
-| Held      | Server claim exists for an order awaiting payment or reconciliation. |
-| Sold      | A verified payment has confirmed the order and its claims.           |
-| Blocked   | Organizer has removed otherwise unclaimed inventory from sale.       |
+| Concept           | Prototype meaning                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| Available         | Published, not blocked, and without an active claim.                                    |
+| Selected          | Local customer choice; no exclusive ownership.                                          |
+| Reserved          | Persisted server claim linked to a saved booking; no payment collected.                 |
+| Blocked           | Organizer has removed otherwise unclaimed inventory from booking.                       |
+| Cancelled booking | Historical booking whose claims were explicitly released; no longer consumes inventory. |
 
-Reservation expiration and payment expiration must be coordinated. The system must not release a slot based solely on a browser timer or Snap page closure. Use server reconciliation, preserve uncertain claims, and expose unresolved cases to the admin. Provider-specific behavior and sources are documented in the [architecture](./architecture.md#7-payment-processing-and-reconciliation).
+Proposed prototype lifecycle: reservations persist without automatic expiry until explicit admin cancellation with a reason. This avoids making an unconfirmed payment deadline part of the first demo. Closing a tab, refresh, or a browser timer cannot release them. The cancellation operation must be idempotent and reject ineligible bookings.
+
+Held, paid, sold, payment-pending, and payment-expiry states belong to the later payment phase. Define its migration and hold policy before integrating Midtrans; never silently convert existing prototype reservations into paid orders. The [future payment design](./architecture.md#7-payment-processing-and-reconciliation) is retained as planning context, not a prototype implementation requirement.
 
 ## 8. Required states and failure behavior
 
-| Surface           | States to specify and demonstrate                                                                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Admin access      | Signed out, authenticated admin, forbidden customer/guest.                                                            |
-| Layout editor     | Empty, loading, saved draft, unsaved changes, generation running, invalid geometry, save conflict, published, frozen. |
-| Pricing           | No selection, mixed prices, invalid value, bulk preview, applying, partial eligibility change, success, failure.      |
-| Dashboard         | No sales, loading, data available, stale data, refresh failure, payment attention items.                              |
-| Inventory browser | Loading, no inventory, no filter matches, available, held, sold, blocked, selected, stale availability.               |
-| Map               | Loading, map/provider failure, unsupported rendering, tiny footprints; retain slot view access.                       |
-| Checkout          | Missing details, quote changed, slot conflict, submitting, provider timeout, existing pending order.                  |
-| Order status      | Awaiting payment, confirmed, failed, expired, cancelled, reconciliation pending, paid exception, access denied.       |
+| Surface           | States to specify and demonstrate                                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Admin access      | Signed out, authenticated admin, forbidden customer/guest.                                                                 |
+| Layout editor     | Empty, loading, saved draft, unsaved changes, generation running, invalid geometry, save conflict, published, frozen.      |
+| Pricing           | No selection, mixed prices, invalid value, bulk preview, applying, partial eligibility change, success, failure.           |
+| Dashboard         | No bookings, loading, available data, stale data, refresh failure, recent reservation activity.                            |
+| Inventory browser | Loading, no inventory, no filter matches, available, reserved, blocked, selected, stale availability.                      |
+| Map               | Loading, map/provider failure, unsupported rendering, tiny footprints; retain slot view access.                            |
+| Checkout          | Missing details, quote changed, slot conflict, submitting, request timeout, recovered existing booking, saved reservation. |
+| Booking status    | Reserved, cancelled, loading, read failure, access denied; no payment collected is always explicit.                        |
 
 Customer selection and checkout must work at a 360 px viewport without horizontal page scrolling. Provide keyboard-operable controls, labeled form errors, visible focus, and an accessible slot list alternative to map interactions. The admin editor is desktop-first; the dashboard and order monitoring remain readable on mobile.
 
@@ -287,86 +292,81 @@ Customer selection and checkout must work at a 360 px viewport without horizonta
 - Multi-organization billing, public organizer onboarding, or complex admin roles.
 - Daily/session rentals, customer-defined frontage, or automatic booth merging.
 - Demand-based pricing, vouchers, bidding, commissions, or tax calculation.
-- Live production payments, automated refund initiation, or customer self-service cancellation.
+- All payment implementation, including Midtrans Sandbox, credentials, token creation, payment UI, webhooks, expiry/reconciliation jobs, refunds, and payment monitoring.
+- Customer self-service cancellation.
 - Automated emails, WhatsApp messaging, and cross-device guest recovery.
 - Survey-grade mapping, routing/navigation, or automatic landowner approval.
 - Unrestricted editing of already booked physical layouts.
 - WebSocket infrastructure, a separate analytics platform, or accounting reports.
 
-Refund/chargeback notifications still need an exception path even though initiating refunds is out of scope. A reversal must not automatically put a previously booked physical space back on sale.
+Later payment integration must add verified provider outcomes and reversal/exception handling as a separate milestone. No provider-specific schema, webhook route, or scheduler is needed to complete this prototype.
 
 ## 10. Delivery sequence and acceptance
 
-### Milestone 1 — Admin inventory and pricing
+### Milestone 1 — Customer booking flow first
 
-Deliver event setup, admin authentication, row/stretch/gap editing, slot generation, validation, bulk pricing, overrides, and publishing.
-
-Acceptance:
-
-- An illustrative 70 m row with sellable intervals 0–18 m, 22–40 m, and 46–70 m produces 12 + 12 + 16 = 40 slots at 1.5 m frontage.
-- A 10 m approved interval produces 6 slots at 1.5 m and reports 1 m unused remainder.
-- A default price, individual overrides, and bulk reset produce the documented final prices.
-- A 10 m stretch with widths 2.1 m, 1.2 m, 1.5 m, 1.5 m, 1.5 m, and 1.5 m uses 9.3 m and reports 0.7 m remainder. Slot IDs/codes and price overrides survive the targeted resize.
-- A size change that exceeds its stretch or overlaps another footprint is rejected without changing saved inventory. A depth override is validated against permitted space.
-- Invalid/overlapping geometry and unpriced slots cannot be published.
-
-### Milestone 2 — Customer discovery and selection
-
-Deliver event page, slot view, map view, filters, and one shared selection summary.
+Start with a clearly illustrative, published database fixture so portal work can proceed before the editor is complete. Deliver `/booking` with slot/map views, street/satellite switching, filters, shared mixed-size/price selection, checkout review, atomic reservation submission, and a private booking result.
 
 Acceptance:
 
-- Switching views preserves a mixed-price selection and its total.
-- Switching between street and satellite preserves the viewport, visible slot overlays, selection, and total.
-- Fit/focus actions and close zoom allow mixed sizes, including 1.2 m and 2.1 m, to be inspected; verify on desktop and mobile using the actual event geometry.
-- Slot details and checkout show each slot's actual dimensions and price. Mixed-size selection is supported without implying equal widths or proportional pricing.
-- The admin can edit draft source geometry at close zoom without bypassing layout freeze rules.
-- Nonadjacent slots remain explicitly identified; the UI makes no continuity claim.
-- An unavailable map still permits selection through the slot view.
+- Switching presentation or basemap preserves selection, viewport, visible overlays, and total.
+- Each slot's actual dimensions and individual price appear in selection and checkout; separated slots do not imply continuous frontage.
+- Fit/focus actions and close zoom work with 1.2 m and 2.1 m slots on desktop/mobile; an unavailable map still permits slot-view selection.
+- A successful submission persists the booking and claims, returns a reference, and clearly states that no payment was collected.
+- Two customers racing for the same slot produce one active owner. An overlapping multi-slot request reserves none.
+- Repeated submission/timeout recovery returns the same booking. Quote changes require review before reservation.
+- A guest cannot read another guest's booking through a guessed ID or reference.
 
-### Milestone 3 — Reservations and Sandbox payment
+### Milestone 2 — Admin dashboard and inventory management
 
-Deliver guest checkout, atomic claims, order snapshots, Midtrans integration, verified notifications, and reconciliation.
-
-Acceptance:
-
-- Two customers racing for the same slot produce at most one active owner.
-- An overlapping multi-slot request fails entirely; it does not partially reserve inventory.
-- A price change requires review before payment; an existing held order keeps its original price.
-- Repeated checkout requests and repeated/out-of-order notifications do not duplicate allocation or sales.
-- Payment creation timeouts and countdown expiry do not prematurely release inventory.
-- Late verified payment after release creates an admin exception and never steals another customer's slot.
-- Geometry changes are rejected after the first reservation, including after its eventual expiry.
-
-### Milestone 4 — Monitoring and end-to-end demo
-
-Deliver operational metrics, sales trend, route breakdown, orders, payment attention list, and audit timeline.
+Deliver `/admin`, persistent admin authentication, reservation monitoring, event setup, row/stretch/gap editing, generation, validation, size overrides/reflow, bulk and individual pricing, publishing, blocking, proposed admin cancellation, and audit history.
 
 Acceptance:
 
-- Available + held + sold + blocked equals published inventory.
-- Pending and failed orders do not inflate confirmed booking value.
-- Replaying a successful notification does not increase confirmed totals.
-- An admin can trace a payment exception and refresh its provider status.
-- Demo data and Sandbox payments are visibly identified and remain isolated from live sales.
+- A 70 m row with sellable intervals 0–18 m, 22–40 m, and 46–70 m produces 40 slots at 1.5 m, without bridging the gaps.
+- A 10 m interval produces six 1.5 m slots and reports 1 m remainder.
+- Changing the first two widths to 2.1 m and 1.2 m uses 9.3 m and leaves 0.7 m. Targeted resize preserves IDs/codes and price overrides.
+- Overflow, overlap, unapproved footprints, and invalid prices prevent saving/publishing.
+- Common prices, individual overrides, and bulk reset produce the specified amounts without modifying reservation snapshots.
+- The editor supports satellite switching and close zoom without losing unsaved work.
+- After the first reservation, geometry remains frozen, including after that booking is cancelled. Reserved prices cannot change.
+- An authorized cancellation atomically releases all claims, records a reason, and preserves history; repeat cancellation has no extra effect.
 
-Suggested demo size is 50–100 illustrative slots over two route groups with explicit gaps and several price overrides. This is a test fixture, not verified site capacity or a performance claim.
+### Milestone 3 — Prototype monitoring and end-to-end verification
+
+Deliver reservation metrics, booking trend, route breakdown, refresh status, and a complete customer/admin demo.
+
+Acceptance:
+
+- Available + reserved + blocked equals published inventory.
+- Active quoted value matches uncancelled reservation snapshots and is never labelled collected revenue.
+- Cancelled bookings release capacity and leave an auditable history.
+- Reservation retries never inflate counts or quoted value.
+- Customer/admin flows work without Midtrans keys, payment tables/endpoints, or a reconciliation scheduler.
+- Illustrative data and the absence of collected payment are visible; private details and admin controls remain protected.
+
+### Later milestone — Payment integration
+
+After the booking and admin prototype is working, define the reservation-to-payment policy and integrate Midtrans Sandbox, verified notifications, safe payment expiry, reconciliation, reversals, and payment analytics. Reassess current provider documentation during that implementation. A live payment launch is a separate readiness decision.
+
+Suggested demo size is 50–100 illustrative slots over two route groups with access gaps, mixed sizes, and price overrides. This is a fixture, not verified site capacity or a performance claim. Work on the `/` event landing page is separate from the booking/admin priority.
 
 ## 11. Decisions to resolve before implementation or live use
 
-| Decision                                                       | Proposed direction                                                          | Needed by                                        |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------ |
-| Rental period and adjacency                                    | Full event; allow separated slots                                           | Before database schema and selection rules.      |
-| Guest versus customer accounts                                 | Guest for prototype; authenticated admin                                    | Before checkout and order access implementation. |
-| Language and customer fields                                   | Indonesian; contact, business, email, phone                                 | Before portal forms.                             |
-| Payment methods and hold duration                              | Restrict to Sandbox methods whose expiry behavior is verified               | Before payment implementation.                   |
-| Demo hosting and scheduler                                     | Node-compatible HTTPS hosting with a reliable scheduled reconciliation task | Before shared payment demo.                      |
-| Real dimensions, permission evidence, and physical numbering   | Field validation; illustrative geometry until then                          | Before any real sale.                            |
-| Refund, cancellation, tax, fee, and organizer contact policies | Unresolved; do not invent customer promises                                 | Before live launch.                              |
+| Decision                                                       | Proposed direction                                                           | Needed by                                                         |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Rental period and adjacency                                    | Full event; allow separated slots                                            | Before schema/selection rules.                                    |
+| Guest versus customer accounts                                 | Guest for prototype; authenticated admin                                     | Before checkout and private access.                               |
+| Prototype reservation release                                  | Persist until explicit admin cancellation with a reason; no automatic expiry | Before reservation lifecycle implementation.                      |
+| Language and customer fields                                   | Indonesian; contact, business, email, phone                                  | Before portal forms.                                              |
+| Demo hosting                                                   | Node-compatible HTTPS hosting and isolated Neon demo branch                  | Before shared prototype; payment scheduler is not a prerequisite. |
+| Payment methods, hold duration, and existing-booking migration | Deferred with Midtrans integration                                           | Before the later payment milestone.                               |
+| Real dimensions, permissions, and physical numbering           | Field validation; illustrative geometry until then                           | Before real allocation/sales.                                     |
+| Live refund, cancellation, tax, fee, and contact policies      | Unresolved; prototype cancellation is not a live operating policy            | Before live launch.                                               |
 
 ## 12. Specification review
 
-Evidence is the user's two project requests, the exported conversation, and the repository scaffold. No user research or usability test has been performed. Proposed defaults above are design judgments rather than validated operating policies.
+Evidence is the user's project requests and subsequent scope clarifications, the exported conversation, and the repository scaffold. No user research or usability test has been performed. Proposed defaults above are design judgments rather than validated operating policies.
 
 | Review area                | Result for this documentation task                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------- |

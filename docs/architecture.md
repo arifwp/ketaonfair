@@ -3,9 +3,13 @@
 Date: 17 November 2026  
 Status: Proposed architecture for the [MVP](./mvp.md), not an implementation report
 
+Implementation status and next tasks: [Progress tracker](./progress.md).
+
 ## 1. Architecture decision
 
-Use one full-stack TanStack Start application containing the customer portal, authenticated admin dashboard, application services, and HTTP endpoints. Store geographic inventory and transactions in Neon Postgres with PostGIS. Use Midtrans Snap Sandbox for payment.
+Use one full-stack TanStack Start application containing the customer booking portal, authenticated admin dashboard, application services, and HTTP endpoints. Store geographic inventory and reservations in Neon Postgres with PostGIS.
+
+Current priority: complete the booking flow first, then the admin dashboard and prototype verification. Payment integration is deferred. Checkout creates a persisted reservation and reference with no payment collected. Midtrans Snap remains the intended later integration; its design below is planning context, not a prototype dependency. Do not implement payment stubs, provider tables/routes, or scheduler infrastructure merely to prepare for that phase.
 
 This is a modular monolith. A separate backend service, map server, Redis deployment, and realtime service are unnecessary for the initial demo. Database transactions own allocation correctness; periodic refresh only improves how current the UI appears.
 
@@ -22,30 +26,30 @@ Repository observations on 17 November 2026:
 
 Installed packages and scaffold files are not proof of working integrations. Keep the repository lockfile as the version reference; check compatibility when adding the planned packages.
 
-| Layer                            | Technology / decision                                                  | Current position and purpose                                                             |
-| -------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Application                      | React + TypeScript + TanStack Start                                    | Existing scaffold; shared customer/admin application.                                    |
-| Routing                          | TanStack Router                                                        | Existing; portal, admin, auth, webhook, and job routes.                                  |
-| Server operations                | TanStack Start server functions and server routes                      | Existing framework; implement authenticated services and integration endpoints.          |
-| Server-state cache               | TanStack Query                                                         | Existing; availability, orders, metrics, invalidation, and polling.                      |
-| Client selection                 | Zustand                                                                | Existing; shared selected IDs and view state, never authoritative availability.          |
-| Styling and components           | Tailwind CSS + shadcn/ui + Lucide                                      | Existing packages/config; create reusable form, table, status, and dialog components.    |
-| Admin tables                     | TanStack Table                                                         | Existing; pricing, inventory, and order filtering.                                       |
-| Map renderer                     | MapLibre GL JS + `react-map-gl/maplibre`                               | Add; clickable GeoJSON inventory and geographic context.                                 |
-| Basemap                          | MapTiler streets + satellite layer switcher                            | Proposed provider; key, local coverage, attribution, and usage limits need verification. |
-| Layout drawing                   | Terra Draw + `terra-draw-maplibre-gl-adapter`                          | Add; edit source rows and approved-area geometry.                                        |
-| Geometry preview                 | Focused Turf.js modules                                                | Add; row slicing, distances, and draft generation helpers.                               |
-| Authoritative spatial validation | PostGIS                                                                | Enable in the chosen database; validate footprints and approved areas.                   |
-| Database                         | Neon managed PostgreSQL                                                | User-selected; one store for inventory, orders, auth, and audit records.                 |
-| Schema and migrations            | Drizzle ORM + Drizzle Kit                                              | Add; typed relational queries and committed migrations, with SQL for spatial operations. |
-| Transaction driver               | Neon serverless `Pool`/`Client` with Drizzle's Neon serverless adapter | Driver installed; add interactive transaction path for checkout and admin mutations.     |
-| Authentication                   | Existing Better Auth, persisted in Neon                                | Complete adapter, migrations, sessions, and server-assigned admin role.                  |
-| Input validation                 | Zod                                                                    | Add; server-validated IDs, quotes, money, dimensions, and geometry payload limits.       |
-| Payment                          | Midtrans Snap Sandbox via server-side HTTPS API calls                  | Add; token creation and status/expiry reconciliation.                                    |
-| Runtime                          | Node-compatible Nitro deployment                                       | Preserve current build approach; hosting provider remains open.                          |
-| Scheduled work                   | Host scheduler calling an authenticated reconciliation route           | Required for the shared demo; no dependency on browser timers.                           |
-| Analytics                        | PostgreSQL aggregate queries; simple React/SVG chart                   | Build in app; no separate analytics service.                                             |
-| Verification                     | Vitest + real test-branch PostgreSQL checks + Playwright               | Planned development tools for geometry, allocation, payment, and end-to-end flows.       |
+| Layer                                | Technology / decision                                                  | Current position and purpose                                                             |
+| ------------------------------------ | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Application                          | React + TypeScript + TanStack Start                                    | Existing scaffold; shared customer/admin application.                                    |
+| Routing                              | TanStack Router                                                        | Existing; portal, admin, auth, webhook, and job routes.                                  |
+| Server operations                    | TanStack Start server functions and server routes                      | Existing framework; implement authenticated services and integration endpoints.          |
+| Server-state cache                   | TanStack Query                                                         | Existing; availability, orders, metrics, invalidation, and polling.                      |
+| Client selection                     | Zustand                                                                | Existing; shared selected IDs and view state, never authoritative availability.          |
+| Styling and components               | Tailwind CSS + shadcn/ui + Lucide                                      | Existing packages/config; create reusable form, table, status, and dialog components.    |
+| Admin tables                         | TanStack Table                                                         | Existing; pricing, inventory, and order filtering.                                       |
+| Map renderer                         | MapLibre GL JS + `react-map-gl/maplibre`                               | Add; clickable GeoJSON inventory and geographic context.                                 |
+| Basemap                              | MapTiler streets + satellite layer switcher                            | Proposed provider; key, local coverage, attribution, and usage limits need verification. |
+| Layout drawing                       | Terra Draw + `terra-draw-maplibre-gl-adapter`                          | Add; edit source rows and approved-area geometry.                                        |
+| Geometry preview                     | Focused Turf.js modules                                                | Add; row slicing, distances, and draft generation helpers.                               |
+| Authoritative spatial validation     | PostGIS                                                                | Enable in the chosen database; validate footprints and approved areas.                   |
+| Database                             | Neon managed PostgreSQL                                                | User-selected; one store for inventory, orders, auth, and audit records.                 |
+| Schema and migrations                | Drizzle ORM + Drizzle Kit                                              | Add; typed relational queries and committed migrations, with SQL for spatial operations. |
+| Transaction driver                   | Neon serverless `Pool`/`Client` with Drizzle's Neon serverless adapter | Driver installed; add interactive transaction path for checkout and admin mutations.     |
+| Authentication                       | Existing Better Auth, persisted in Neon                                | Complete adapter, migrations, sessions, and server-assigned admin role.                  |
+| Input validation                     | Zod                                                                    | Add; server-validated IDs, quotes, money, dimensions, and geometry payload limits.       |
+| Payment — later phase                | Midtrans Snap, starting with Sandbox                                   | Deferred; not installed/configured or required for the prototype.                        |
+| Runtime                              | Node-compatible Nitro deployment                                       | Preserve current build approach; hosting provider remains open.                          |
+| Payment reconciliation — later phase | Host scheduler and authenticated reconciliation route                  | Deferred with payments. Prototype reservations do not automatically expire.              |
+| Analytics                            | PostgreSQL aggregate queries; simple React/SVG chart                   | Build in app; no separate analytics service.                                             |
+| Verification                         | Vitest + real test-branch PostgreSQL checks + Playwright               | Planned development tools for geometry, allocation, payment, and end-to-end flows.       |
 
 MapLibre documents polygon click interactions, and Terra Draw lists its MapLibre adapter. These are rendering/drawing tools; the application still owns booth rules. [MapLibre example](https://maplibre.org/maplibre-gl-js/docs/examples/show-polygon-information-on-click/), [Terra Draw repository](https://github.com/JamesLMilner/terra-draw).
 
@@ -55,16 +59,14 @@ Neon supports the PostGIS extension. The proposed schema therefore does not requ
 
 ```mermaid
 flowchart TB
-    Customer[Customer browser: slot view, map, checkout]
+    Customer[Customer browser: slot view, map, reservation checkout]
     Admin[Admin browser: editor, pricing, monitoring]
-    Maps[MapTiler tiles and styles]
-    Scheduler[Hosting scheduler]
-    Midtrans[Midtrans Sandbox]
+    Maps[MapTiler street and satellite tiles]
     subgraph App[One TanStack Start / Nitro application]
         Views[React routes and shared components]
-        Boundary[Server functions and HTTP routes]
+        Boundary[Server functions and auth HTTP route]
         Auth[Authentication and authorization]
-        Services[Layout, pricing, reservation, payment, reporting services]
+        Services[Layout, pricing, reservation, reporting services]
     end
     DB[(Neon Postgres + PostGIS)]
     Customer --> Views
@@ -75,13 +77,9 @@ flowchart TB
     Boundary --> Auth
     Auth --> Services
     Services --> DB
-    Services -->|Create payment / get status| Midtrans
-    Customer -->|Snap checkout| Midtrans
-    Midtrans -->|Verified webhook| Boundary
-    Scheduler -->|Authenticated reconciliation call| Boundary
 ```
 
-TanStack server functions handle app-internal operations. Server routes handle external HTTP entry points such as the payment webhook and scheduled jobs. Both call the same services and enforce their own authorization boundary. [Server functions](https://tanstack.com/start/latest/docs/framework/react/guide/server-functions), [server routes](https://tanstack.com/start/latest/docs/framework/react/guide/server-routes).
+TanStack server functions handle app-internal operations. The existing auth HTTP route remains in scope; payment webhook and scheduled-job routes are deferred. Both call the same services and enforce their own authorization boundary. [Server functions](https://tanstack.com/start/latest/docs/framework/react/guide/server-functions), [server routes](https://tanstack.com/start/latest/docs/framework/react/guide/server-routes).
 
 ### Proposed code organization
 
@@ -93,19 +91,19 @@ src/
   components/ui/           Shared controls and status patterns
   features/
     event-landing/         Event landing page content
-    event-management/      Event setup and sales lifecycle
+    event-management/      Event setup and booking lifecycle
     event-layout/          Map editor, stretches, gaps, generation
     slot-inventory/        Slot browser, map layers, feature-owned selection store
     slot-pricing/          Bulk pricing and individual overrides
     booking-checkout/      Guest details, quote review, reservation UI
     booking-orders/        Status page and admin order monitoring
-    sales-analytics/       Metrics, route breakdown, sales chart
+    booking-analytics/     Reservation metrics, route breakdown, booking chart
   server/
     auth/                  Session checks and admin permissions
     db/                    Drizzle schema, database clients, migrations integration
     services/              Authoritative application operations
-    payments/              Midtrans API adapter and status mapping
-    jobs/                  Bounded reconciliation work
+    payments/              Deferred Midtrans adapter and status processing
+    jobs/                  Deferred payment reconciliation
   shared/                  Schemas, DTOs, money and geometry types
 db/
   migrations/              Application and auth migrations
@@ -166,45 +164,47 @@ For individual resize, lock the event and affected draft records, check the expe
 
 Allow one active published layout per event. Publishing locks the event record and checks there has been no reservation. Checkout takes the same event lock before checking layout revision and setting `booking_started_at`.
 
-Once `booking_started_at` is set, all geometry, codes, dimensions, slot membership, and layout replacement are frozen for that event. This intentionally limits post-sale editing in the MVP and prevents duplicated inventory across layout versions. Draft versions remain useful before sales and for future events, not for bypassing the freeze.
+Once `booking_started_at` is set, all geometry, codes, dimensions, slot membership, and layout replacement are frozen for that event. This intentionally limits post-reservation editing in the MVP and prevents duplicated inventory across layout versions. Draft versions remain useful before bookings and for future events, not for bypassing the freeze.
 
 Blocking and pricing remain independent operations on unclaimed inventory. Event default pricing is a generation template; generated base prices and per-slot overrides follow the [MVP pricing rules](./mvp.md#53-pricing-and-price-generation).
 
 ## 5. Conceptual database schema
 
-| Record                | Important fields and responsibility                                                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Better Auth tables    | Persisted user, session, account, and verification records managed through reviewed migrations.                                                                                                      |
-| Admin role assignment | Server-provisioned role tied to the auth user; no public admin signup or client-editable role.                                                                                                       |
-| `events`              | ID, slug, name, dates, timezone, booking window, sales state, default price/dimensions, active layout ID, `booking_started_at`.                                                                      |
-| `layout_versions`     | Event ID, version, draft/published/retired state, revision, approval metadata, published time.                                                                                                       |
-| `routes`              | Layout ID, name, display order; organizational grouping.                                                                                                                                             |
-| `booth_rows`          | Route ID, line geometry, fixed direction, footprint side, label.                                                                                                                                     |
-| `approved_stretches`  | Row ID, start/end mm, default frontage/depth mm, approved polygon, approval state and note.                                                                                                          |
-| `exclusions`          | Row ID, start/end mm, reason, optional polygon for physical obstruction checks.                                                                                                                      |
-| `slots`               | Stable ID, event/layout/stretch IDs, code, order/interval, stored base frontage/depth mm, nullable dimension overrides, polygon, base price, nullable price override, blocked flag/reason, revision. |
-| `guest_sessions`      | Hashed private token, expiry, session metadata; authorizes guest order access.                                                                                                                       |
-| `orders`              | Event ID, guest session ID, reference, customer snapshot, state, total IDR, checkout idempotency key, confirmed time.                                                                                |
-| `order_items`         | Order/slot IDs plus immutable code, route, dimensions, footprint, and unit price snapshots.                                                                                                          |
-| `reservations`        | Order ID, server deadline, reconciliation state, finalized/released timestamps.                                                                                                                      |
-| `slot_claims`         | Reservation/slot IDs, held/sold state, nullable release time; durable exclusive ownership.                                                                                                           |
-| `payment_attempts`    | Order ID, unique provider order ID, provider transaction ID, creation state, raw provider status, normalized status, token reference, deadline, next check time.                                     |
-| `payment_events`      | Attempt ID, deduplication key, received time, sanitized event/status evidence, processing result.                                                                                                    |
-| `audit_logs`          | Actor, event/entity IDs, operation, previous/new values, timestamp, request correlation ID.                                                                                                          |
+Implement booking, inventory, auth, and audit records for the prototype. The two payment records explicitly marked below belong to a later migration; do not create empty payment tables as a prerequisite for reservations.
+
+| Record                        | Important fields and responsibility                                                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Better Auth tables            | Persisted user, session, account, and verification records managed through reviewed migrations.                                                                                                      |
+| Admin role assignment         | Server-provisioned role tied to the auth user; no public admin signup or client-editable role.                                                                                                       |
+| `events`                      | ID, slug, name, dates, timezone, booking window, sales state, default price/dimensions, active layout ID, `booking_started_at`.                                                                      |
+| `layout_versions`             | Event ID, version, draft/published/retired state, revision, approval metadata, published time.                                                                                                       |
+| `routes`                      | Layout ID, name, display order; organizational grouping.                                                                                                                                             |
+| `booth_rows`                  | Route ID, line geometry, fixed direction, footprint side, label.                                                                                                                                     |
+| `approved_stretches`          | Row ID, start/end mm, default frontage/depth mm, approved polygon, approval state and note.                                                                                                          |
+| `exclusions`                  | Row ID, start/end mm, reason, optional polygon for physical obstruction checks.                                                                                                                      |
+| `slots`                       | Stable ID, event/layout/stretch IDs, code, order/interval, stored base frontage/depth mm, nullable dimension overrides, polygon, base price, nullable price override, blocked flag/reason, revision. |
+| `guest_sessions`              | Hashed private token, expiry, session metadata; authorizes guest order access.                                                                                                                       |
+| `orders`                      | Event/guest IDs, reference, customer snapshot, reserved/cancelled state, total IDR, idempotency key, reserved time, cancellation actor/reason/time; explicit payment state `not_integrated`.         |
+| `order_items`                 | Order/slot IDs plus immutable code, route, dimensions, footprint, and unit price snapshots.                                                                                                          |
+| `reservations`                | Order ID, reserved/released state, reserved and released timestamps. No automatic deadline in the prototype; future expiry is a separate policy/migration.                                           |
+| `slot_claims`                 | Reservation/slot IDs, reserved state, nullable release time; exclusive ownership. Held/sold transitions are added with payments.                                                                     |
+| `payment_attempts` — deferred | Future order/provider references, attempt creation/status, token/deadline, next check time. Not required in the prototype schema.                                                                    |
+| `payment_events` — deferred   | Future deduplication, verified notification evidence, processing outcome. Not required in the prototype schema.                                                                                      |
+| `audit_logs`                  | Actor, event/entity IDs, operation, previous/new values, timestamp, request correlation ID.                                                                                                          |
 
 ### Database invariants
 
-- All slot codes are unique within a layout; all provider order IDs are unique.
+- All slot codes are unique within a layout. Provider order ID uniqueness is a later payment invariant.
 - One logical checkout idempotency key per guest session yields one order. Reusing it with a different payload is a conflict.
-- A partial unique index on `slot_claims(slot_id)` where `released_at IS NULL` prevents more than one active claim, including sold claims.
-- Released claims remain as history. Sold claims are not released by ordinary expiry cleanup.
+- A partial unique index on `slot_claims(slot_id)` where `released_at IS NULL` prevents more than one active reservation. Retain this invariant when paid ownership is added.
+- Released claims remain as history. The prototype has no automatic expiry cleanup; cancellation releases all of one booking's active claims atomically.
 - Positive base/override price and dimension checks are enforced in the database as well as the server. A slot interval must match its effective frontage; persist interval/geometry changes atomically and reject invalid mixed-size layouts.
 - Store whole IDR amounts as integers, never floating-point currency. Enforce a supported upper bound so API number serialization remains exact.
 - Store timestamps as `timestamptz`; render using the event timezone, proposed `Asia/Jakarta` for the demo.
 - Foreign keys and event/layout consistency checks prevent cross-event orders or references to another event's slots. Use composite keys where necessary, not UI filters alone.
 - Availability is derived from publication, blocking, and active claims. Do not maintain a second independently writable `slots.status` cache.
 
-An available slot is published, not blocked, and has no active claim. A held slot has a held claim, including unresolved payment cases. A sold slot has a sold claim. Block mutations require no active claim, so the four displayed states remain mutually exclusive.
+For the prototype, displayed availability is available, reserved, or blocked. Reserved means an active persisted claim, not paid ownership. Block mutations require no active claim, keeping the three states mutually exclusive. Held/sold/payment-review states are introduced only with payment integration.
 
 ## 6. Reservation and pricing transactions
 
@@ -216,23 +216,29 @@ Use Drizzle's Neon serverless integration for this transaction path, with parame
 
 ### Reservation flow
 
-1. Validate the guest session, unique slot IDs, one-event constraint, contact fields, and request idempotency key.
-2. Begin a short database transaction. Lock the event first, then selected slots in stable ID order. Related mutations use the same lock ordering.
-3. Check event sales/booking window, published layout/revision, blocked flags, and existing claims. An overdue claim is still owned until safely reconciled.
-4. Resolve effective prices and compare slot revisions/prices with the quote the customer reviewed. Return a quote conflict without creating an order if they changed.
-5. Insert the order, immutable items, reservation, held claims, and a payment-attempt intent with a unique provider order ID. Set `booking_started_at`.
-6. Commit everything together. Any unavailable slot or constraint conflict rolls back the whole selection.
-7. Create the Midtrans transaction outside the database transaction. Persist the token/result separately while ownership remains held.
+1. Validate the guest session, unique slot IDs, one-event constraint, contact fields, and idempotency key.
+2. Begin a short transaction. Lock the event, then selected slots in stable ID order; related mutations follow the same order.
+3. Check the booking window, published layout/revision, dimensions, blocking, and active claims. Prototype reservations do not expire automatically.
+4. Resolve effective prices and compare the reviewed quote/revisions. Return a conflict without creating a booking if changed.
+5. Insert the order, immutable items, reservation, and exclusive claims. Set order state `reserved`, payment state `not_integrated`, and event `booking_started_at`.
+6. Commit everything together. Any unavailable slot or constraint conflict rolls back the entire selection.
+7. Return the booking reference and private status data with "No payment collected". No external payment request occurs.
 
-The database uniqueness rule is the final guard even if another application path fails to lock correctly. Retry only bounded, safe deadlock/serialization conflicts with the same idempotency key.
+The unique index remains the final allocation guard. Retry only bounded, safe transaction conflicts with the same idempotency key. After a lost response, the same request recovers the original booking; it cannot create a second one.
+
+### Prototype cancellation
+
+Proposed admin-only operation: lock the event, affected slots, booking, and claims in the documented order; verify the booking is a prototype reservation with no payment integration; record cancellation reason/actor; release every active claim and mark the booking cancelled in one transaction. Repeating the cancellation returns its existing result. Retain immutable snapshots and the event's geometry freeze. Do not reuse this release rule for future pending/paid bookings without a separate policy.
 
 ### Pricing and blocking flow
 
 Lock the event and target slots in the same order. Recheck claims and revisions inside the transaction. Update only eligible slots and record audit entries. Bulk application returns precise changed/skipped IDs and reasons; a preview does not guarantee later eligibility.
 
-Price snapshots are set when the reservation is created. A change to the event template never updates existing slot bases automatically. Held/sold slots reject base/override changes, and all earlier order snapshots remain unchanged after release or sale.
+Price snapshots are set when the reservation is created. A change to the event template never updates existing slot bases automatically. Reserved slots reject base/override changes, and earlier snapshots remain unchanged after cancellation. Extend the protection to held/sold inventory when payments are added.
 
 ## 7. Payment processing and reconciliation
+
+**Deferred phase.** This section preserves future integration requirements only. None of its provider calls, credentials, tables, endpoints, jobs, payment UI, or acceptance tests block the current prototype. Recheck provider documentation during implementation, define payment holds explicitly, and plan migration of existing prototype reservations without marking them paid automatically.
 
 ### Integration boundary
 
@@ -296,8 +302,8 @@ If a verified payment arrives after its original claims were released, create a 
 | --------------------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `/`                               | Event landing page with event information and entry into booking.                                     | Confirmed by the user.                                                      |
 | `/booking`                        | Customer inventory browser containing slot and map views and shared selection. Supports direct entry. | Confirmed by the user; upcoming portal implementation starts here.          |
-| `/booking/checkout`               | Customer details, quote review, reservation, and payment.                                             | Proposed child route.                                                       |
-| `/booking/orders/$bookingOrderId` | Private guest-owned order/payment status. The path ID alone grants no access.                         | Proposed child route.                                                       |
+| `/booking/checkout`               | Customer details, quote review, and reservation submission; no payment UI in the prototype.           | Proposed child route.                                                       |
+| `/booking/orders/$bookingOrderId` | Private reservation status and no-payment notice. The path ID alone grants no access.                 | Proposed child route.                                                       |
 | `/admin`                          | Authenticated organizer dashboard for slot management, pricing, analytics, and monitoring.            | Confirmed by the user; specific child routes remain implementation details. |
 
 The `/booking` route owns the two inventory views; switching between them does not navigate to the event landing page or create a separate cart. Landing-page work and booking implementation have separate route ownership.
@@ -306,14 +312,14 @@ The `/booking` route owns the two inventory views; switching between them does n
 
 These are conceptual operations to implement, not existing endpoints.
 
-| Boundary                     | Operations                                                                                                                                |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Public server functions      | Event details, published inventory, read-only quote.                                                                                      |
-| Guest-owned server functions | Reserve selection, resume payment, read order, request bounded status refresh.                                                            |
-| Admin server functions       | Event setup, save draft, generate, validate, publish, price update, block/unblock, metrics, order search/details, reconciliation request. |
-| Existing auth route          | `/api/auth/*`, completed with persistence and role checks.                                                                                |
-| External webhook             | Proposed `POST /api/payments/midtrans/notification`; provider-authenticated, not cookie-authenticated.                                    |
-| Scheduled job                | Proposed `POST /api/jobs/reconcile-payments`; private scheduler credential.                                                               |
+| Boundary                     | Operations                                                                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Public server functions      | Event details, published inventory, read-only quote.                                                                                    |
+| Guest-owned server functions | Reserve selection and read private booking status; idempotent submission recovers lost responses.                                       |
+| Admin server functions       | Event/draft/generation/publishing, price and size adjustment, blocking, reservation search/details, proposed cancellation, and metrics. |
+| Existing auth route          | `/api/auth/*`, completed with persistence and role checks.                                                                              |
+| External webhook — deferred  | Future `POST /api/payments/midtrans/notification`; do not implement for the prototype.                                                  |
+| Scheduled job — deferred     | Future `POST /api/jobs/reconcile-payments`; no prototype scheduler prerequisite.                                                        |
 
 Every admin function checks the server session and role. Every guest-owned operation checks the guest token/session, not just a reference or guessed order ID. A webhook uses its provider verification path, not an admin session.
 
@@ -323,7 +329,7 @@ Every admin function checks the server session and role. Every guest-owned opera
 - TanStack Query fetches inventory, orders, and metrics through server boundaries. Use event/layout/revision in query keys and invalidate after relevant mutations.
 - Zustand stores only selected IDs, selected view, and editor-local state. Derive displayed prices and statuses from current query results.
 - Slot view and map consume one inventory dataset and selection store. Never run independent carts for the two views.
-- Proposed visible-page refresh: inventory and dashboard every 15 seconds, owned pending order every 5 seconds with backoff. Provider requests remain server-throttled; browser polling does not query Midtrans directly.
+- Proposed visible-page refresh: inventory/dashboard every 15 seconds and private reservation status on entry or after a relevant action. No payment polling or provider calls occur in the prototype; payment-phase polling is designed later.
 - Label stale data and show last refreshed time. Revalidate every checkout regardless of polling freshness.
 - Use GeoJSON fill/line layers rather than one React DOM marker per slot. Highlight selected features and synchronize focus with the accessible list.
 - On map failure, retain the slot browser. Map tiles and styles are display dependencies, not booking authorities.
@@ -331,41 +337,41 @@ Every admin function checks the server session and role. Every guest-owned opera
 
 ## 10. Reporting and monitoring
 
-Calculate metrics from the same event-scoped claim/order data used for checkout. Inventory cards use one consistent database snapshot. Route value uses order-item snapshots rather than today's slot prices. Daily sales use `confirmed_at` in the event timezone. Do not join payment attempts in a way that counts an order multiple times.
+Calculate prototype metrics from event-scoped reservations/claims and immutable order items. Available + reserved + blocked must equal published inventory in a consistent snapshot. Quoted reservation value uses active order/item snapshots, never current prices or a claim of collected revenue. Booking trends use `reserved_at` in the event timezone; cancellation history remains auditable.
 
-Use structured, redacted application logs with request, order, attempt, and job correlation IDs. The dashboard attention list covers stale pending attempts, unknown creation outcomes, paid exceptions, and failed reconciliation. Track the scheduler heartbeat; an absent job is a visible fault, not an implied successful cleanup.
+Use structured, redacted logs for reservation submissions, conflicts, cancellations, layout/pricing changes, and application failures. Show booking activity and refresh state in the dashboard. There is no payment attention list, provider status refresh, scheduler heartbeat, or reconciliation job to implement in this phase.
 
-Audit publishing, price changes, overrides, blocking, and admin reconciliation requests. Keep operational analytics separate from provider payouts, net revenue, and accounting.
+Later payments add financial status, verified sales, provider exceptions, and job monitoring. Keep that reporting separate from prototype reservation values and migrate records explicitly.
 
 ## 11. Security and configuration
 
-| Configuration                                          | Exposure                                                              |
-| ------------------------------------------------------ | --------------------------------------------------------------------- |
-| `DATABASE_URL`                                         | Server only; pooled application connection.                           |
-| Migration connection/configuration                     | Server/developer only; separate migration execution from app startup. |
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                | Secret is server only; origin configured per environment.             |
-| `MIDTRANS_SERVER_KEY`, environment selector            | Server only. Sandbox in the demo.                                     |
-| Midtrans client key, if required by selected Snap mode | Public key only; never substitute the server key.                     |
-| MapTiler browser key                                   | Public by necessity; restrict permitted origins and usage.            |
-| Reconciliation job credential                          | Server/hosting scheduler only.                                        |
+| Configuration                                          | Exposure                                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                                         | Server only; pooled application connection.                                                |
+| Migration connection/configuration                     | Server/developer only; separate migration execution from app startup.                      |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                | Secret is server only; origin configured per environment.                                  |
+| `MIDTRANS_SERVER_KEY`, environment selector — deferred | Not required for the prototype; server-only Sandbox configuration when integration begins. |
+| Midtrans client key — deferred                         | Add only if the chosen later Snap mode needs it; never expose the server key.              |
+| MapTiler browser key                                   | Public by necessity; restrict permitted origins and usage.                                 |
+| Reconciliation job credential — deferred               | No prototype scheduler; add a server-only credential in the payment phase.                 |
 
-Use secure, HttpOnly guest/admin cookies and appropriate SameSite settings. Store guest access tokens hashed at rest. Protect cookie-authenticated mutations against cross-site requests. Rate-limit checkout and payment-refresh operations. Limit slot counts and geometry payload sizes. Public inventory responses contain no customer contacts, auth details, reservation-owner identifiers, or payment tokens.
+Use secure, HttpOnly guest/admin cookies and appropriate SameSite settings. Store guest access tokens hashed at rest. Protect cookie-authenticated mutations against cross-site requests. Rate-limit reservation submissions and admin cancellation; add provider-refresh limits in the payment phase. Limit slot counts and geometry payload sizes. Public inventory responses contain no customer contacts, auth details, reservation-owner identifiers, or payment tokens.
 
 Parameterize SQL, including spatial SQL. Redact payment secrets and unnecessary personal information from logs and notification evidence. A payment reference or public booking code is not an authorization credential.
 
 ## 12. Environments and deployment
 
-| Environment       | Database / payment                                              | Purpose                                                                            |
-| ----------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Local development | Isolated development database branch, Sandbox                   | Build and test, including a public tunnel only when testing webhooks.              |
-| Shared demo       | Dedicated demo database branch, Sandbox, illustrative inventory | Reviewer-accessible portal/admin and public webhook.                               |
-| Live              | Separately configured live database/payment credentials         | Deferred until measurement, operating policy, and payment acceptance are resolved. |
+| Environment       | Database / payment                                                    | Purpose                                                                                     |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Local development | Isolated development branch, no payment integration                   | Build reservation/admin flows without provider keys or webhooks.                            |
+| Shared demo       | Dedicated demo branch, illustrative inventory, no payment integration | Reviewer-accessible portal/admin with saved reservations and an explicit no-payment notice. |
+| Live              | Separately configured live database/payment credentials               | Deferred until measurement, operating policy, and payment acceptance are resolved.          |
 
-Keep the existing Nitro Node build as the baseline. Choose a host that supports the installed runtime, HTTPS, webhook reachability, environment secrets, database connectivity, and reliable scheduled calls. Vercel remains an alternative from the original conversation, subject to its adapter and scheduler constraints; it is not a verified deployment decision.
+Keep the existing Nitro Node build as the baseline. Choose a host supporting the installed runtime, HTTPS, environment secrets, and database connectivity. Webhook reachability and reliable scheduled calls become requirements for the later payment phase. Vercel remains an alternative from the original conversation, subject to its adapter and scheduler constraints; it is not a verified deployment decision.
 
-Do not use an in-process timer as the only cleanup mechanism on a host that can restart or suspend. Do not run schema migrations or reset demo data automatically on ordinary requests. Review migrations on an isolated branch before applying them to a shared environment.
+The prototype does not require expiry cleanup. When payment holds are introduced, do not use an in-process timer as their only cleanup mechanism on a host that can restart or suspend. Do not run schema migrations or reset demo data automatically on ordinary requests. Review migrations on an isolated branch before applying them to a shared environment.
 
-Basemap account setup, tile coverage at the actual site, provider attribution, hosting configuration, and scheduler setup remain unverified external dependencies. Exact costs and hosting limits are outside this architecture decision.
+Basemap account setup, local tile coverage, provider attribution, and hosting remain unverified prototype dependencies. Payment credentials and scheduler setup are deferred dependencies. Exact costs and hosting limits are outside this architecture decision.
 
 ## 13. Decision records
 
@@ -379,7 +385,7 @@ Evidence for these choices is the user brief and local scaffold. No comparable p
 | Customer identity    | Mandatory account / guest session                                | Guest is proposed for demo speed; cross-device recovery is deferred and private session access must be implemented.  |
 | Availability updates | Push realtime / periodic refresh                                 | Polling is enough for the initial demo; visible availability may lag, so reservation remains authoritative.          |
 | Post-sale layout     | Migrate active versions / freeze geometry                        | Freeze after the first reservation; safer and simpler, but physical changes require a later workflow.                |
-| Infrastructure       | Separate job worker and queue / bounded scheduled server work    | Use a scheduled service in the same app; unresolved work remains durable in Postgres.                                |
+| Infrastructure       | Dedicated workers/queue / in-app services                        | Use the app and PostgreSQL for the prototype; scheduled payment reconciliation is deferred.                          |
 
 Confidence is high that one full-stack application fits this prototype. Confidence in site accuracy, actual payment expiry settings, and operating policies remains unverified until field/provider tests and organizer decisions.
 
@@ -389,9 +395,10 @@ Confidence is high that one full-stack application fits this prototype. Confiden
 - Exercise PostGIS validity/containment/collision checks against representative corners and access gaps.
 - Run concurrent allocation tests against real PostgreSQL on an isolated test branch; assert the active-claim unique constraint and all-or-nothing selection behavior.
 - Race price/block/publish changes against reservation, including stale revisions and deterministic locking.
-- Test duplicate checkout, provider creation timeouts, replayed and out-of-order notifications, incorrect signatures/amounts, missed webhooks, and overlapping reconciliation jobs.
-- Use Sandbox end-to-end tests to establish actual expiry behavior for each enabled payment method and the release path for unused Snap sessions.
-- Verify private order authorization, forbidden admin access, protected jobs, and absence of secrets/PII in public GeoJSON and logs.
+- Test duplicate reservation submission, lost-response recovery, admin cancellation/release races, unchanged snapshots, and accurate reserved inventory/value counts.
+- Verify the prototype works without payment configuration and never displays a paid/sold result.
+- Deferred payment checks: provider timeouts, duplicate/out-of-order notifications, signature/amount validation, method expiry, unused sessions, reversals, and reconciliation races. They become acceptance criteria when that phase is implemented.
+- Verify private booking ownership, forbidden admin access, and absence of secrets/PII in public GeoJSON and logs. Protected payment jobs are checked in their later phase.
 - Verify both inventory views, mixed-price checkout, map failure fallback, mobile checkout, dashboard totals, and the illustrative-data labels.
 - Verify street/satellite switching with overlays and unsaved editor work intact, source-aware tile requests, close-zoom slot hit detection, fit/focus actions, and stable viewport during availability refresh.
 - Run the repository build, lint, type checking, and focused tests once corresponding code exists. This documentation task does not establish that those implementation checks pass.
