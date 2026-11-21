@@ -211,7 +211,7 @@ Longer names are welcome when they clarify intent. Avoid abbreviations, ambiguou
 - When implementing the deferred payment phase, keep held/sold inventory, order state, and provider payment state distinct. Do not build provider functionality speculatively.
 - In the payment phase, make external calls outside database transactions. Persist idempotent attempts; uncertain creation/status retains ownership until safely reconciled.
 - In the payment phase, verify notifications and provider status. Never confirm from a browser callback or release inventory from a local countdown alone.
-- Enforce layout freeze and reserved-slot pricing restrictions in server transactions, not just disabled buttons. Extend those rules to held/sold states in the payment phase.
+- Confirmed: admins may change price and size for available slots after sales opens. Protect reserved slot identities, prices, dimensions and footprints in server transactions and database guards. Safe reflow must preserve reserved neighbours and access gaps; no global opening-time/first-reservation freeze applies to available inventory. Extend reservation protection to held/sold states in the payment phase.
 - Validate footprints server-side, use appropriate metric/geodesic calculations, preserve access gaps, and distinguish illustrative geometry from measurements.
 - Commit reviewable migrations, preserve applied migration history, and test database changes in isolation. Do not run destructive resets against shared/live data or use mocks as proof of allocation constraints.
 - Introduce additional infrastructure only for a demonstrated need and an explicit architecture decision.

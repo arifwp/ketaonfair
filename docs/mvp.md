@@ -24,12 +24,14 @@ The MVP must demonstrate both the customer reservation and the admin operation. 
 - A customer portal with a slot view, map view, multiple-slot selection, and checkout.
 - The application serves one fixed event. Multiple-event creation, switching, and management are outside scope. A database configuration record does not imply a dynamic event catalog.
 - Booking opening and closing dates/times are dynamic settings editable in the admin dashboard. Evaluate the saved schedule in the event timezone; accept new reservations at or after opening and strictly before closing. Closing bookings does not cancel existing reservations.
+- Admins may change both price and size for available slots after sales opens. Existing reservations retain their original price, dimensions and footprint. Apply eligible changes atomically without moving or resizing reserved neighbours.
 - Customers can check out and book slots without signing in or creating an account. Guest checkout is confirmed; admin access still requires authentication.
 - The map must offer satellite imagery, preserve slot overlays across basemaps, and support close zoom for inspecting available slots and adjusting the draft layout.
 - `/` is the event landing page. `/booking` is the customer booking entry point and the focus of the upcoming portal implementation.
 - `/booking` is a full-viewport map with satellite as the default background, floating cart and slot-code search. Do not show event information, page headers, route/availability filters or price bounds here. Slot footprints support hover details and direct click-to-add/remove. Keep an accessible search/list overlay without replacing the map with a separate catalog view.
 - Customer booking is mobile-first, including the 375 × 667 iPhone SE viewport. The cart starts as a compact bar and opens only on request in a bottom sheet with a visible **Tutup** button, internal item scrolling and persistent close/footer controls. Closing it keeps selected slots.
 - Customer booking copy is confirmed in casual Bahasa Indonesia with a Gen Z tone. Keep status, dimensions, prices and incomplete reservation/payment state precise; accessibility labels and errors use the same language.
+- Checkout details are confirmed as name, a free-text description of what the customer plans to sell, email and an Indonesian WhatsApp number normalized to `+62`, plus an optional note. Do not ask for a business name or offer a selling-category picker. Customer review shows slot codes, dimensions and prices without street-route names.
 - The starter street runs from Pasar Cepit / Pasar Ketaon baru to Bengkel Purnama Fauzan. Additional routes within this fixed event, including toward Makam Mbah Budo, can have their own generated slots; their geometry and frontage approvals are still required.
 - `/admin` is the authenticated admin dashboard entry point for slot management, pricing, analytics, and monitoring.
 - Routes and permitted frontage are defined for the fixed event, with explicit gaps around unavailable areas.
@@ -51,7 +53,6 @@ These choices make the draft actionable. They are not previously confirmed busin
 | Slot size             | Common generation dimensions per approved stretch, with individual slot overrides                                  | Different-sized slots can share a stretch; customers buy the published dimensions.                                        |
 | Price unit            | A fixed IDR amount per slot for the event                                                                          | No automatic multiplication by length, demand pricing, or discounts.                                                      |
 | Reservation lifecycle | Proposed: persist prototype reservations until explicit admin cancellation, without an automatic payment countdown | No provider, expiry worker, or payment scheduler is required; a later hold policy must be defined before adding payments. |
-| Layout lifecycle      | Geometry becomes fixed after the first reservation                                                                 | Admin can still change eligible prices and block available slots.                                                         |
 | Fees and taxes        | No additional line items in the demo                                                                               | Live fees, taxes, and customer disclosures remain undecided.                                                              |
 | Payment integration   | Deferred, including Sandbox                                                                                        | Show "No payment collected"; no fake paid state, payment form, or provider credentials required.                          |
 
@@ -135,7 +136,7 @@ For the MVP, individual location correction uses source row/stretch editing or t
 - A frontage change preserves slot order and recalculates the changed slot's end and subsequent slot intervals within the same uninterrupted stretch. Rebuild affected footprints and preview the changes before saving.
 - Reflow must not cross an access gap, move slots into another stretch, or create overlaps. If the resized sequence does not fit, reject the change and let the admin adjust the size or explicitly remove draft inventory. Never silently drop or shrink another slot.
 - A targeted size change preserves affected slot IDs, codes, and price overrides. It does not automatically reprice the resized slot. Validate a depth-only change against the approved footprint and neighboring slots as well.
-- Apply dimension changes and affected geometry atomically with a draft revision check. The published-layout freeze still applies after the first reservation; customers cannot request arbitrary resizing during checkout.
+- Apply dimension changes and affected geometry atomically with a draft revision check. Reserved slots and their footprints remain protected; available slots may change after opening when reflow preserves reserved neighbours and access gaps. Customers cannot request arbitrary resizing during checkout.
 
 Illustrative example: a 10 m stretch contains six default 1.5 m slots. Set the first to 2.1 m and the second to 1.2 m; the four remaining slots stay 1.5 m. Total used frontage becomes 9.3 m with 0.7 m unsold. Prices remain individually configured rather than being inferred from those widths.
 
@@ -169,17 +170,17 @@ Illustrative pricing example, not an actual event tariff: generate 20 slots at I
 
 - Publish only approved, valid, positively priced inventory with unique slot codes.
 - Keep draft layouts private. The portal reads only the published layout.
-- Before any reservation has existed, close bookings to revise and republish geometry.
-- After the first reservation, freeze the event's published geometry, slot identities, dimensions, numbering, and membership of the layout, even if that reservation is later cancelled.
+- Available slots may be repriced or resized after sales opens. Apply geometry/price changes with event/slot locks and revision validation.
+- Preserve reserved slot identities, prices, dimensions and footprints. Publishing must not replace or duplicate actively claimed inventory; safe available-slot updates retain the published layout and reserved slot identities.
 - Allow blocking or unblocking an available slot, with a reason and audit entry.
 - Reject blocking, moving, deleting, renumbering, or regenerating a reserved slot. The same protection extends to held/sold inventory when payments are added.
-- Require a separate future layout-change workflow for physical changes after booking begins. Do not publish a replacement version over active reservations in this MVP.
+- Reject an available-slot reflow that overlaps or moves reserved neighbours or access gaps. Do not silently delete inventory or replace a published layout over active reservations.
 
 ### 5.5 Booking monitoring
 
-- Search bookings by reference, customer name, or business name.
+- Search bookings by reference, customer name, or selling description.
 - Filter by reservation state, route, and date.
-- Show customer details, exact slots/dimensions, item price snapshots, quoted total, creation time, and reservation state.
+- Show customer name, selling description, WhatsApp number and optional note, exact slots/dimensions, item price snapshots, quoted total, creation time, and reservation state.
 - Show recent booking activity, inventory changes, failed saves, and refresh failures where relevant.
 - Proposed prototype control: an authenticated admin can cancel an unpaid prototype reservation with a reason. Atomically release its claims, preserve the booking history, and record the actor and reason. There is no customer self-service cancellation in this scope.
 - Never offer a manual "mark paid" action or imply the reservation has been financially settled.
@@ -191,7 +192,7 @@ Metrics are event-scoped and calculated from persisted records. Prices remain us
 
 | Metric                         | Prototype definition                                                                                      |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| Published inventory            | Slots in the current/frozen published layout; exclude drafts.                                             |
+| Published inventory            | Slots in the current published layout; exclude drafts.                                                    |
 | Available / reserved / blocked | Mutually exclusive counts whose sum equals published inventory.                                           |
 | Bookable capacity              | Published inventory minus blocked slots.                                                                  |
 | Reservation occupancy          | Reserved slots / bookable capacity. Show an empty value if capacity is zero.                              |
@@ -241,7 +242,7 @@ Statuses must be readable through text and icons as well as color. Unavailable s
 
 1. Add or remove available slots in either view.
 2. Review slot codes, locations, actual dimensions, individual prices, count, and total in one selection summary.
-3. Continue to checkout and enter proposed minimum details: contact name, business name, email, and phone number.
+3. Continue to checkout and enter name, what you plan to sell, email and an Indonesian WhatsApp number. A note is optional. Accept common `08`, `8`, `62` and `+62` input formats, and normalize the result to `+62`.
 4. Review the final server quote and submit **Reserve selected slots**.
 5. If every slot remains available and the reviewed quote is current, save the entire selection in one reservation transaction.
 6. Show a private booking status page with the reference and **Reservation recorded — no payment collected**.
@@ -260,7 +261,7 @@ Checkout requirements:
 
 ### 6.3 Booking status
 
-Display the booking reference, contact/business name, event, exact slots and dimensions, item price snapshots, quoted total, reservation state, and creation time.
+Display the booking reference, contact name and selling description, optional note, event, exact slots and dimensions, item price snapshots, quoted total, reservation state, and creation time.
 
 Distinguish **Reserved** from **Cancelled**, submission errors, and access denied. Always state that payment is not integrated and no payment was collected. Do not label a reservation as paid, sold, or financially confirmed.
 
@@ -339,7 +340,7 @@ Acceptance:
 - Overflow, overlap, unapproved footprints, and invalid prices prevent saving/publishing.
 - Common prices, individual overrides, and bulk reset produce the specified amounts without modifying reservation snapshots.
 - The editor supports satellite switching and close zoom without losing unsaved work.
-- After the first reservation, geometry remains frozen, including after that booking is cancelled. Reserved prices cannot change.
+- Available prices and sizes can change after opening. Reserved prices, dimensions and footprints cannot change; cancelled booking snapshots remain historical.
 - An authorized cancellation atomically releases all claims, records a reason, and preserves history; repeat cancellation has no extra effect.
 
 ### Milestone 3 — Prototype monitoring and end-to-end verification
@@ -363,15 +364,15 @@ Suggested demo size is 50–100 illustrative slots over two route groups with ac
 
 ## 11. Decisions to resolve before implementation or live use
 
-| Decision                                                       | Proposed direction                                                           | Needed by                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Rental period and adjacency                                    | Full event; allow separated slots                                            | Before schema/selection rules.                                    |
-| Prototype reservation release                                  | Persist until explicit admin cancellation with a reason; no automatic expiry | Before reservation lifecycle implementation.                      |
-| Language and customer fields                                   | Indonesian; contact, business, email, phone                                  | Before portal forms.                                              |
-| Demo hosting                                                   | Node-compatible HTTPS hosting and isolated Neon demo branch                  | Before shared prototype; payment scheduler is not a prerequisite. |
-| Payment methods, hold duration, and existing-booking migration | Deferred with Midtrans integration                                           | Before the later payment milestone.                               |
-| Real dimensions, permissions, and physical numbering           | Field validation; illustrative geometry until then                           | Before real allocation/sales.                                     |
-| Live refund, cancellation, tax, fee, and contact policies      | Unresolved; prototype cancellation is not a live operating policy            | Before live launch.                                               |
+| Decision                                                       | Proposed direction                                                                              | Needed by                                                         |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Rental period and adjacency                                    | Full event; allow separated slots                                                               | Before schema/selection rules.                                    |
+| Prototype reservation release                                  | Persist until explicit admin cancellation with a reason; no automatic expiry                    | Before reservation lifecycle implementation.                      |
+| Language and customer fields                                   | Confirmed: casual Indonesian; name, what they sell, email, `+62` WhatsApp number, optional note | B05 review validates these; B06 must persist the same snapshot.   |
+| Demo hosting                                                   | Node-compatible HTTPS hosting and isolated Neon demo branch                                     | Before shared prototype; payment scheduler is not a prerequisite. |
+| Payment methods, hold duration, and existing-booking migration | Deferred with Midtrans integration                                                              | Before the later payment milestone.                               |
+| Real dimensions, permissions, and physical numbering           | Field validation; illustrative geometry until then                                              | Before real allocation/sales.                                     |
+| Live refund, cancellation, tax, fee, and contact policies      | Unresolved; prototype cancellation is not a live operating policy                               | Before live launch.                                               |
 
 ## 12. Specification review
 

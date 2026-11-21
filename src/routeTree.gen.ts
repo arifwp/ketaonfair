@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BookingRouteRouteImport } from './routes/booking/route'
 import { Route as BookingIndexRouteImport } from './routes/booking/index'
+import { Route as BookingCheckoutRouteImport } from './routes/booking/checkout'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as BookingOrdersBookingOrderIdRouteImport } from './routes/booking/orders/$bookingOrderId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,36 +31,71 @@ const BookingIndexRoute = BookingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BookingRouteRoute,
 } as any)
+const BookingCheckoutRoute = BookingCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => BookingRouteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookingOrdersBookingOrderIdRoute =
+  BookingOrdersBookingOrderIdRouteImport.update({
+    id: '/orders/$bookingOrderId',
+    path: '/orders/$bookingOrderId',
+    getParentRoute: () => BookingRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/booking': typeof BookingRouteRouteWithChildren
+  '/booking/checkout': typeof BookingCheckoutRoute
   '/booking/': typeof BookingIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/booking/orders/$bookingOrderId': typeof BookingOrdersBookingOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/booking/checkout': typeof BookingCheckoutRoute
   '/booking': typeof BookingIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/booking/orders/$bookingOrderId': typeof BookingOrdersBookingOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/booking': typeof BookingRouteRouteWithChildren
+  '/booking/checkout': typeof BookingCheckoutRoute
   '/booking/': typeof BookingIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/booking/orders/$bookingOrderId': typeof BookingOrdersBookingOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/booking' | '/booking/' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/booking'
+    | '/booking/checkout'
+    | '/booking/'
+    | '/api/auth/$'
+    | '/booking/orders/$bookingOrderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/booking' | '/api/auth/$'
-  id: '__root__' | '/' | '/booking' | '/booking/' | '/api/auth/$'
+  to:
+    | '/'
+    | '/booking/checkout'
+    | '/booking'
+    | '/api/auth/$'
+    | '/booking/orders/$bookingOrderId'
+  id:
+    | '__root__'
+    | '/'
+    | '/booking'
+    | '/booking/checkout'
+    | '/booking/'
+    | '/api/auth/$'
+    | '/booking/orders/$bookingOrderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -90,6 +127,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookingIndexRouteImport
       parentRoute: typeof BookingRouteRoute
     }
+    '/booking/checkout': {
+      id: '/booking/checkout'
+      path: '/checkout'
+      fullPath: '/booking/checkout'
+      preLoaderRoute: typeof BookingCheckoutRouteImport
+      parentRoute: typeof BookingRouteRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -97,15 +141,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/booking/orders/$bookingOrderId': {
+      id: '/booking/orders/$bookingOrderId'
+      path: '/orders/$bookingOrderId'
+      fullPath: '/booking/orders/$bookingOrderId'
+      preLoaderRoute: typeof BookingOrdersBookingOrderIdRouteImport
+      parentRoute: typeof BookingRouteRoute
+    }
   }
 }
 
 interface BookingRouteRouteChildren {
+  BookingCheckoutRoute: typeof BookingCheckoutRoute
   BookingIndexRoute: typeof BookingIndexRoute
+  BookingOrdersBookingOrderIdRoute: typeof BookingOrdersBookingOrderIdRoute
 }
 
 const BookingRouteRouteChildren: BookingRouteRouteChildren = {
+  BookingCheckoutRoute: BookingCheckoutRoute,
   BookingIndexRoute: BookingIndexRoute,
+  BookingOrdersBookingOrderIdRoute: BookingOrdersBookingOrderIdRoute,
 }
 
 const BookingRouteRouteWithChildren = BookingRouteRoute._addFileChildren(

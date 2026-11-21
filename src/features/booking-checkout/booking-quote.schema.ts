@@ -20,7 +20,6 @@ export type BookingQuoteItem = Pick<
   PublishedBookingSlot,
   | 'slotId'
   | 'code'
-  | 'routeName'
   | 'frontageMillimeters'
   | 'depthMillimeters'
   | 'priceIdr'

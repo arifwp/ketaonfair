@@ -1,38 +1,42 @@
 # Prototype Progress Tracker
 
-Last reviewed: 17 November 2026, Asia/Jakarta  
-Scope: Customer booking flow first, admin dashboard second, payment integration later  
+Last reviewed: 18 November 2026, Asia/Jakarta\
+Scope: Customer booking flow first, admin dashboard second, payment integration later\
 Requirements: [MVP](./mvp.md) · [Architecture](./architecture.md) · [Engineering instructions](../AGENTS.md)
 
 ## Current record
 
-**Total prototype completion: 37.00%.**
+**Total prototype completion: 57.00%.**
 
 | Area                               | Share of prototype | Area completion | Contribution to total       |
 | ---------------------------------- | ------------------ | --------------- | --------------------------- |
 | Foundation and brand configuration | 5%                 | 100.00%         | 5.00 percentage points      |
-| Customer booking flow              | 52%                | 61.54%          | 32.00 percentage points     |
+| Customer booking flow              | 52%                | 100.00%         | 52.00 percentage points     |
 | Admin dashboard and management     | 39%                | 0.00%           | 0.00 percentage points      |
 | Integrated demo verification       | 4%                 | 0.00%           | 0.00 percentage points      |
-| **Total prototype**                | **100%**           | **37.00%**      | **37.00 percentage points** |
+| **Total prototype**                | **100%**           | **57.00%**      | **57.00 percentage points** |
 
 Planning artifacts have been written: MVP, architecture, engineering instructions, primary-color direction, and this tracker. Documentation and installed dependencies do not count as completed booking/admin functionality.
 
-Current evidence: F01/B01 and B02/B03/B04 are verified locally. `/booking` is a full-viewport MapTiler satellite map with 220 illustrative slots, 110 per street side, along the supplied Pasar Ketaon–Bengkel Purnama Fauzan starter route. It has hover details, direct polygon click selection, floating cart, code-only search/list overlay, exact prices/totals and inventory-bound zoom/panning. Event information belongs to `/`; route/availability/price filters and the separate page-view switch were removed. The correction passes 12 unit tests, lint/typecheck/build and desktop/360 px browser checks. The earlier 11 PostgreSQL tests remain foundation evidence; no database/service changes required rerunning them for this presentation correction. `/` remains the starter landing route and `/admin` is unimplemented. See [browser verification](./booking-browser-verification.md) and [foundation verification](./booking-foundation-verification.md).
+Current evidence: F01/F02 and B01–B07 are locally verified. The full-screen satellite browser now leads into a mobile Indonesian checkout, a real atomic reservation and a private confirmation/recovery page. Confirmed fields are name, what the customer plans to sell, email, Indonesian WhatsApp number and optional note. Race protection is implemented in PostgreSQL/backend transactions, not browser checks. Eighteen unit tests and 16 real PostgreSQL integration tests pass, with browser coverage for concurrent-safe submission/recovery, guest ownership, CSRF, copy/reference, quote changes/conflicts, cancellation-state refresh and 360 px layouts. Reviewed migrations 0004/0005 are applied to isolated test/app branches. `/` remains the starter landing page and `/admin` is unimplemented. See [checkout/reservation verification](./booking-checkout-verification.md), [browser verification](./booking-browser-verification.md) and [foundation verification](./booking-foundation-verification.md).
 
-**Next task: B05 — checkout details and authoritative quote review.** Reuse the current selection and database quote contract; no reservation or checkout is simulated by the browser. Follow with B06/B07, then admin work. Payment integration stays deferred.
+**Next task: A01 — persistent admin authentication and `/admin` shell.** Then A02 booking-window controls and A03–A06 safe available-inventory authoring/pricing. Preserve the user's confirmed post-opening editing policy below. Payment integration stays deferred.
 
 Confirmed portal correction: map view is the primary booking experience, with slots on both street sides. B03 was brought into this slice after the user corrected the initial list-first implementation. Additional streets within this fixed event, including toward Makam Mbah Budo, need route geometry and A03/A04 authoring; no second event or fabricated cemetery layout was added.
 
-Confirmed second correction: the map literally occupies the whole booking viewport, satellite is the default, and the cart floats above it. Only slot-code search remains. Footprints support hover and direct selection; zoom-out/panning are bounded to the local fitted inventory region. This replaces the prior boxed map/catalog and event-detail presentation. The feature weights and 37.00% total are unchanged because the same browsing/selection gates were corrected and reverified.
+Confirmed second correction: the map literally occupies the whole booking viewport, satellite is the default, and the cart floats above it. Only slot-code search remains. Footprints support hover and direct selection; zoom-out/panning are bounded to the local fitted inventory region. This replaces the prior boxed map/catalog and event-detail presentation. That correction retained the feature weights and the then-current 37.00% total because the same browsing/selection gates were reverified.
 
-Confirmed mobile/copy correction: customer booking is mobile-first and uses casual Bahasa Indonesia with a Gen Z tone. The cart starts as a compact 72 px bar; **Lihat** opens a bounded native-dialog sheet with a visible **Tutup** button. Portrait sheets stay within 65dvh, with internal item scrolling and persistent header/footer; short-height screens use up to 85dvh. Close, Escape and backdrop preserve selections and restore focus. Map controls move into thumb reach. Native map labels, accessible copy, statuses and decimal dimensions are localized. Verification covers 375×667, 360×640, 667×375 and 1440×900, plus touch-enabled Chromium and an 11-slot scrolling cart. Completion remains 37.00% with the same feature weights/gate counts.
+Confirmed mobile/copy correction: customer booking is mobile-first and uses casual Bahasa Indonesia with a Gen Z tone. The cart starts as a compact 72 px bar; **Lihat** opens a bounded native-dialog sheet with a visible **Tutup** button. Portrait sheets stay within 65dvh, with internal item scrolling and persistent header/footer; short-height screens use up to 85dvh. Close, Escape and backdrop preserve selections and restore focus. Map controls move into thumb reach. Native map labels, accessible copy, statuses and decimal dimensions are localized. Verification covers 375×667, 360×640, 667×375 and 1440×900, plus touch-enabled Chromium and an 11-slot scrolling cart. That correction retained the then-current 37.00% and gate counts; subsequent B05–B07 work brings the current total to 57.00%.
 
-Confirmed customer access: checkout and slot booking require no customer login or account creation. Establish a private guest session automatically for booking ownership; admin authentication remains separate. This decision does not complete an implementation gate.
+Confirmed customer access: checkout and slot booking require no customer login or account creation. Private guest sessions, ownership checks and recovery are now implemented in B06/B07; admin authentication remains separate.
 
 Confirmed event scope: one fixed event, with no event creation/switching UI. B01 retains the architecture's `events` storage for booking settings; a singleton settings relation is a possible simplification, not a prerequisite for the slot browser or evidence of multi-event product scope.
 
-Confirmed booking controls: admins must be able to set/change booking opening and closing dates/times in the dashboard. B01 persists these settings and checks the schedule in quote reads. A02 admin UI/mutations and B06 reservation-time enforcement remain unimplemented; these confirmations add no completed gates.
+Confirmed booking controls: admins must be able to set/change booking opening and closing dates/times in the dashboard. B01 persists these settings and checks the schedule in quote reads. B06 rechecks these settings under the reservation lock. A02 authenticated admin UI/mutations remain unimplemented.
+
+Confirmed 18 November fields/copy: collect name, free-text “Mau jualan apa?”, email, `+62` WhatsApp number and optional note. Do not ask for business name or a selling-category enum. Customer quote summaries omit route text and the extra separated-slot/footer copy. The separate read-error card was removed; the main action provides retry. A failed connection is distinct from an allocation race.
+
+Confirmed 18 November editing policy: admins may change both price and size for **available** slots after sales opens. Existing reservations retain their price, dimensions and footprint. This supersedes the earlier global first-reservation/opening-time geometry freeze. The abandoned opening-freeze migration was never applied. Migration 0005 protects actively claimed slot values/geometry; order snapshots remain immutable after cancellation. A04/A06 must preserve reserved neighbours and access gaps when editing available inventory. Admin editing UI/mutations are not complete merely because the guard exists.
 
 ## How percentages work
 
@@ -42,7 +46,7 @@ Confirmed booking controls: admins must be able to set/change booking opening an
 - Weights are initial planning allocations, not measured hours or delivery-date estimates. They sum to 100. Change them only when scope changes, record why, and recalculate previous/current totals consistently.
 - `Total completion = Σ(feature weight × feature completion) / 100`.
 - `Area completion = Σ(area feature weight × feature completion) / Σ(area feature weight)`.
-- Current calculation: `(4 × 100 + 1 × 100 + 9 × 100 + 8 × 100 + 9 × 100 + 6 × 100 + all remaining weights × 0) / 100 = 37.00%`.
+- Current calculation: `(4 + 1 + 9 + 8 + 9 + 6 + 6 + 10 + 4) × 100 / 100 = 57.00%`; remaining feature weights contribute zero.
 - Deferred work has a displayed percentage for visibility but no weight in the prototype denominator. Completing the prototype does not imply payment readiness or production readiness.
 - Status labels: **Not started**, **In progress**, **Blocked**, **Complete**, or **Deferred**. Do not call a feature complete before all four gates pass. Record blockers without inventing progress.
 
@@ -56,21 +60,21 @@ Confirmed booking controls: admins must be able to set/change booking opening an
 | B02       | P1 — Booking          | `/booking` route and slot browser                                | 8%       | 4/4             | 100%       | Complete        |
 | B03       | P1 — Booking          | Street/satellite map, slot overlays, zoom and focus              | 9%       | 4/4             | 100%       | Complete        |
 | B04       | P1 — Booking          | Shared multi-slot selection, code search, and total              | 6%       | 4/4             | 100%       | Complete        |
-| B05       | P1 — Booking          | Checkout details and authoritative quote review                  | 6%       | 0/4             | 0%         | Not started     |
-| B06       | P1 — Booking          | Atomic reservations, idempotency, and guest ownership            | 10%      | 0/4             | 0%         | Not started     |
-| B07       | P1 — Booking          | Private booking result and lost-response recovery                | 4%       | 0/4             | 0%         | Not started     |
+| B05       | P1 — Booking          | Checkout details and authoritative quote review                  | 6%       | 4/4             | 100%       | Complete        |
+| B06       | P1 — Booking          | Atomic reservations, idempotency, and guest ownership            | 10%      | 4/4             | 100%       | Complete        |
+| B07       | P1 — Booking          | Private booking result and lost-response recovery                | 4%       | 4/4             | 100%       | Complete        |
 | A01       | P2 — Admin            | Persistent admin authentication and `/admin` shell               | 6%       | 0/4             | 0%         | Not started     |
 | A02       | P2 — Admin            | Event setup and booking window controls                          | 4%       | 0/4             | 0%         | Not started     |
 | A03       | P2 — Admin            | Draft map editor, approved stretches, and access gaps            | 7%       | 0/4             | 0%         | Not started     |
 | A04       | P2 — Admin            | Slot generation, mixed sizes, and safe reflow                    | 6%       | 0/4             | 0%         | Not started     |
 | A05       | P2 — Admin            | Default, bulk, and individual slot pricing                       | 5%       | 0/4             | 0%         | Not started     |
-| A06       | P2 — Admin            | Publishing, layout freeze, and slot blocking                     | 4%       | 0/4             | 0%         | Not started     |
+| A06       | P2 — Admin            | Publishing, reserved-slot protection, and slot blocking          | 4%       | 0/4             | 0%         | Not started     |
 | A07       | P2 — Admin            | Booking monitoring, cancellation, and audit history              | 4%       | 0/4             | 0%         | Not started     |
 | A08       | P2 — Admin            | Reservation analytics and operational refresh state              | 3%       | 0/4             | 0%         | Not started     |
 | Q01       | P3 — Verification     | Integrated customer/admin demo and handoff                       | 4%       | 0/4             | 0%         | Not started     |
-| **Total** | **Current prototype** | **Weighted completion**                                          | **100%** | **24/72**       | **37.00%** | **In progress** |
+| **Total** | **Current prototype** | **Weighted completion**                                          | **100%** | **36/72**       | **57.00%** | **In progress** |
 
-The unweighted gate count is shown for auditability, not used as the overall percentage. B01 is complete at the database-foundation level, and B02/B03/B04 cover local browsing/selection. B05–A08 and Q01 remain at 0%. The 37% total does not imply persisted customer reservations, admin functionality, deployment, or production readiness.
+The unweighted gate count is shown for auditability, not used as the overall percentage. B01 is complete at the database-foundation level, and B02/B03/B04 cover local browsing/selection. B05–B07 now cover persisted reservations and private recovery. A01–A08 and Q01 remain at 0%. The 57% total does not imply admin functionality, deployment or production readiness.
 
 ## Execution order
 
@@ -138,30 +142,30 @@ Prerequisite: B02; map-switch verification is included with B03 in this slice.
 
 ### B05 — Checkout details and quote review
 
-Prerequisite: B01 and B04; test successful submission once B06 is ready.
+Prerequisite: B01/B04; reservation integration verified with B06.
 
-- [ ] Checkout collects and validates the agreed minimum customer/business details with accessible errors.
-- [ ] Server-authoritative review shows exact selected slots, actual dimensions, price snapshots, and total.
-- [ ] Quote/revision changes require review; conflicts retain a correctable selection instead of partially proceeding.
-- [ ] Submit/pending/error UI works on mobile and keyboard, uses a stable submission key, and contains no payment form or countdown.
+- [x] Checkout validates the confirmed name, free-text selling description, email and `+62` WhatsApp number, plus optional note, with associated field errors and first-invalid focus. Evidence: [schemas/tests](../src/features/booking-checkout/booking-checkout-review.test.ts), customer fields and production-build browser checks.
+- [x] Server-authoritative review shows exact selected codes, actual dimensions, independent prices and total, without route copy. Evidence: [quote service](../src/server/services/booking-quote.server.ts), quote query, real mixed-price Rp575.000 checkout and immutable receipt.
+- [x] Stale quotes/revisions require review; unavailable-slot conflicts allocate none and retain a correctable selection. Evidence: backend PostgreSQL conflict/quote tests and browser correction flow. Admin price/size edits remain A04/A05 work.
+- [x] Submit/pending/error UI works on mobile and keyboard with a stable submission key, disabled duplicate submission, retained fields and main-button read retry. There is no payment form/countdown. Evidence: [checkout page](../src/features/booking-checkout/components/booking-checkout-page.tsx), browser pending/transport-failure/recovery and four viewport sizes.
 
 ### B06 — Atomic reservations and private ownership
 
-Prerequisite: B01 and B05 contracts.
+Prerequisite: B01/B05 contracts.
 
-- [ ] One transaction validates the event/quote and creates the booking, immutable items, and every claim, or none.
-- [ ] Two-session and overlapping-selection tests against PostgreSQL demonstrate one owner per slot and all-or-nothing allocation.
-- [ ] Idempotency and timeout recovery return the same booking; changed payloads cannot reuse the submission key silently.
-- [ ] Guest ownership is enforced server-side; reservations are explicitly unpaid/not integrated, with the documented prototype lifecycle and no provider call.
+- [x] One transaction validates event/window/layout/quote, then creates the booking, immutable items, reservation, all claims and audit record or none. Evidence: [reservation service](../src/server/services/reserve-booking-slots.server.ts), unique active-claim constraint and real PostgreSQL tests.
+- [x] Two guest sessions with overlapping selections produce one complete owner and no partial booking for the losing session. Evidence: concurrent integration tests plus existing database uniqueness tests. Event → guest → sorted-slot locking is explicit.
+- [x] Concurrent duplicates and same-key lost-response recovery return the same booking; changed committed payloads conflict. Evidence: database tests and browser abort-after-commit/reload recovery. Lock/statement/client deadlines and per-guest attempt limiting are bounded.
+- [x] Private guest cookies are HttpOnly/SameSite and Secure in production; only token hashes persist. Reservation/status/recovery operations enforce ownership and use `not_integrated` payment state with no provider call. The chosen prototype lifecycle has no automatic expiry; live cancellation policy is not implied. Evidence: guest/service tests, cookie inspection, cross-origin 403 and migrations [0004](../db/migrations/0004_checkout-customer-details.sql)/[0005](../db/migrations/0005_reserved-slot-inventory-guards.sql).
 
 ### B07 — Private result and recovery
 
 Prerequisite: B06.
 
-- [ ] A persisted booking returns a private status page and copyable reference with actual dimensions/prices.
-- [ ] Reserved/cancelled, loading/read-error, and access-denied states are shown correctly, with "No payment collected" explicit.
-- [ ] Refresh or a lost submission response recovers the existing booking without duplication or accidental cancellation.
-- [ ] Private details are inaccessible through another guest's guessed ID/reference, and cancel-state refresh is verified when A07 is ready.
+- [x] A saved booking opens a private status page with copyable reference, exact slot/value snapshots, confirmed contact fields and event-timezone timestamp. Evidence: [private result page](../src/features/booking-orders/components/booking-order-page.tsx) and browser clipboard/receipt checks.
+- [x] Reserved/cancelled, pending/read-error and access-denied states are implemented with unpaid status explicit. Evidence: owner-checked private reader, production-build result/refresh/error checks and cancellation fixture; no admin cancellation UI is claimed.
+- [x] Refresh and a response lost after a confirmed backend commit recover the same existing booking without another allocation. Evidence: browser route interception after commit, full reload and owner-only lookup using only an opaque sessionStorage UUID. Contact/quote payloads are not stored there.
+- [x] Another guest cannot read guessed IDs or recover another guest's submission key. Cancellation-state refresh retains immutable totals. Evidence: two-context browser check and private-reader integration tests. Cancellation was an isolated SQL fixture; the actual A07 admin operation remains unimplemented.
 
 ### A01 — Admin authentication and shell
 
@@ -214,7 +218,7 @@ Prerequisite: A03–A05.
 
 - [ ] Only approved, valid, priced inventory can become the one active published layout; drafts stay private.
 - [ ] Publishing and reservation races use consistent locking/revision rules.
-- [ ] The first reservation permanently freezes geometry/identity for the prototype event, including after cancellation.
+- [ ] Safe available-slot price/size edits and publication preserve all reserved identities, dimensions, prices and footprints; reject reflow collisions/overflow without deleting inventory. Order history remains immutable after cancellation.
 - [ ] Blocking/unblocking requires eligible unclaimed inventory, a reason, and audit evidence; reserved slots cannot be blocked.
 
 ### A07 — Booking monitoring and cancellation
@@ -259,8 +263,8 @@ Prerequisite: the customer and admin features above; feature-level verification 
 | Database and environment           | Application branch `br-tiny-lake-b34l5y7d` is configured in ignored `.env.local`; the separate integration branch remains `br-broad-shape-b3uilbrj`. Both expire 24 November 2026 at 19:00 Asia/Jakarta. Staging/production were not migrated or seeded. See browser verification. |
 | Map provider                       | User's MapTiler key configured locally; street/satellite coverage, attribution, provider native max zoom 15/22 and display max 24 verified. Allowed-origin restrictions, hosting environment and deployed behavior remain separate work.                                           |
 | Customer access                    | Confirmed: no customer login or account creation for checkout/booking. Implement automatic private guest sessions and ownership checks in B01/B06/B07; admin authentication remains required.                                                                                      |
-| Cancellation lifecycle             | Persistent reservations until explicit admin cancellation remain proposed, not a confirmed live operating policy. Record the implementation choice and limits before B06/A07.                                                                                                      |
-| Interface language/customer fields | Customer booking copy is confirmed as casual Bahasa Indonesia with a Gen Z tone. Contact/business fields remain B05 proposed defaults; the language confirmation does not approve those fields.                                                                                    |
+| Cancellation lifecycle             | Chosen demo implementation: persist reservations without expiry until explicit admin cancellation. This is not an approved live cancellation policy; A07 must add reason, audit and atomic release.                                                                                |
+| Interface language/customer fields | Confirmed and implemented: casual Indonesian; name, free-text selling description, email, `+62` WhatsApp number and optional note. No business-name/category field.                                                                                                                |
 | Actual site layout                 | Use explicit illustrative geometry until frontage, access permissions, reference points, and physical numbering are measured/approved.                                                                                                                                             |
 | Deployment                         | Nitro build approach exists; a shared host/environment has not been verified. No payment scheduler is required now.                                                                                                                                                                |
 
@@ -279,6 +283,7 @@ Append records rather than rewriting earlier evidence. If a prior completion cla
 | 2026-11-17 · Asia/Jakarta | Corrected to map-first street booking and implemented/verified B02/B03/B04 together               | B02 0% → 100%; B03 0% → 100%; B04 0% → 100%                                    | 14.00% → 37.00%                | User supplied starter endpoints and MapTiler key. New isolated app branch, 220 both-side illustrative slots, shared selection/filters, street/satellite and failure fallback verified. Ten unit and 11 PostgreSQL tests, lint/types/build, scoped formatting, desktop/360 px browser checks passed. See [browser verification](./booking-browser-verification.md). No reservation, admin or deployment completion claimed. | B05 checkout details and authoritative quote review, then B06/B07.                 |
 | 2026-11-17 · Asia/Jakarta | Corrected the portal to a full-viewport satellite map, floating cart and code-only search         | B02/B03/B04 remain 100%; acceptance wording follows the user's clarified scope | 37.00% → 37.00%                | Removed event/catalog layout and route/availability/price filters. Added hover and direct click-to-toggle, inventory-derived minimum zoom and local panning bounds. Twelve unit tests, lint/types/build and desktop/360 px interaction/layout checks pass. Database behavior is unchanged; no fresh PostgreSQL run claimed.                                                                                                | B05 checkout review using the same cart; keep event information on `/`.            |
 | 2026-11-17 · Asia/Jakarta | Reworked cart dismissal and copy for small customer screens                                       | B02/B03/B04 remain 100%; same 24/72 accepted gates and feature weights         | 37.00% → 37.00%                | Replaced the expanded chevron cart with a compact launcher and native sheet using visible Lihat/Tutup actions. Localized booking text, status/ARIA/map labels and decimal dimensions. Twelve unit tests, lint/types/build, desktop/small-phone/landscape layout checks, close/focus/backdrop/Escape, 11-item scrolling and touch polygon/cart checks pass. No DB changes or fresh PostgreSQL run claimed.                  | B05 checkout review, preserving mobile-first Indonesian copy and the same cart.    |
+| 2026-11-18 · Asia/Jakarta | Implemented B05/B06/B07 checkout, backend reservation and private recovery                        | B05/B06/B07 0% → 100%; 36/72 accepted gates; weights unchanged                 | 37.00% → 57.00%                | Confirmed fields/copy and available-only post-opening price/size edits. Eighteen unit and 16 PostgreSQL tests, lint/types/build, migrations/checks and mobile/desktop browser verification pass. Backend all-or-none allocation, duplicate/reload recovery, ownership, CSRF and reserved-inventory/snapshot protection are verified. No payment/admin/deployment completion claimed.                                       | A01 persistent admin auth/shell, then A02 and safe available-inventory authoring.  |
 
 ## Updating this record
 

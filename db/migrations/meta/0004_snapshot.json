@@ -1,0 +1,1504 @@
+{
+  "id": "0307536f-bdc6-45a5-b1bf-21225581ebf3",
+  "prevId": "175f2e72-ec55-4044-9c47-898fa4dfc102",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.approved_stretches": {
+      "name": "approved_stretches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_id": {
+          "name": "row_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_mm": {
+          "name": "start_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_mm": {
+          "name": "end_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_frontage_mm": {
+          "name": "default_frontage_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_depth_mm": {
+          "name": "default_depth_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_approved": {
+          "name": "is_approved",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "approval_note": {
+          "name": "approval_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "footprint": {
+          "name": "footprint",
+          "type": "geometry(Polygon,4326)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "stretch_footprint_gist": {
+          "name": "stretch_footprint_gist",
+          "columns": [
+            {
+              "expression": "footprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "approved_stretches_row_id_layout_id_event_id_booth_rows_id_layout_id_event_id_fk": {
+          "name": "approved_stretches_row_id_layout_id_event_id_booth_rows_id_layout_id_event_id_fk",
+          "tableFrom": "approved_stretches",
+          "tableTo": "booth_rows",
+          "columnsFrom": ["row_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "stretch_layout_identity": {
+          "name": "stretch_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "stretch_interval_valid": {
+          "name": "stretch_interval_valid",
+          "value": "\"approved_stretches\".\"start_mm\" >= 0 AND \"approved_stretches\".\"end_mm\" > \"approved_stretches\".\"start_mm\""
+        },
+        "stretch_defaults_valid": {
+          "name": "stretch_defaults_valid",
+          "value": "\"approved_stretches\".\"default_frontage_mm\" > 0 AND \"approved_stretches\".\"default_depth_mm\" > 0"
+        },
+        "stretch_geometry_valid": {
+          "name": "stretch_geometry_valid",
+          "value": "ST_IsValid(\"approved_stretches\".\"footprint\") AND NOT ST_IsEmpty(\"approved_stretches\".\"footprint\") AND ST_Area(\"approved_stretches\".\"footprint\"::geography) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.audit_logs": {
+      "name": "audit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_kind": {
+          "name": "actor_kind",
+          "type": "audit_actor_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "operation": {
+          "name": "operation",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_values": {
+          "name": "previous_values",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "new_values": {
+          "name": "new_values",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "correlation_id": {
+          "name": "correlation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "audit_logs_event_id_events_id_fk": {
+          "name": "audit_logs_event_id_events_id_fk",
+          "tableFrom": "audit_logs",
+          "tableTo": "events",
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.order_items": {
+      "name": "order_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_code": {
+          "name": "slot_code",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_name": {
+          "name": "route_name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frontage_mm": {
+          "name": "frontage_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "depth_mm": {
+          "name": "depth_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_price_idr": {
+          "name": "unit_price_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_revision": {
+          "name": "slot_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "footprint": {
+          "name": "footprint",
+          "type": "geometry(Polygon,4326)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "order_items_order_id_layout_id_event_id_orders_id_layout_id_event_id_fk": {
+          "name": "order_items_order_id_layout_id_event_id_orders_id_layout_id_event_id_fk",
+          "tableFrom": "order_items",
+          "tableTo": "orders",
+          "columnsFrom": ["order_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "order_items_slot_id_layout_id_event_id_slots_id_layout_id_event_id_fk": {
+          "name": "order_items_slot_id_layout_id_event_id_slots_id_layout_id_event_id_fk",
+          "tableFrom": "order_items",
+          "tableTo": "slots",
+          "columnsFrom": ["slot_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "order_item_slot_unique": {
+          "name": "order_item_slot_unique",
+          "nullsNotDistinct": false,
+          "columns": ["order_id", "slot_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "order_item_values_valid": {
+          "name": "order_item_values_valid",
+          "value": "\"order_items\".\"frontage_mm\" > 0 AND \"order_items\".\"depth_mm\" > 0 AND \"order_items\".\"slot_revision\" > 0 AND \"order_items\".\"unit_price_idr\" BETWEEN 1 AND 1000000000000"
+        },
+        "order_item_geometry_valid": {
+          "name": "order_item_geometry_valid",
+          "value": "ST_IsValid(\"order_items\".\"footprint\") AND NOT ST_IsEmpty(\"order_items\".\"footprint\") AND ST_Area(\"order_items\".\"footprint\"::geography) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.orders": {
+      "name": "orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "guest_session_id": {
+          "name": "guest_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_reference": {
+          "name": "booking_reference",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "submission_payload_hash": {
+          "name": "submission_payload_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_name": {
+          "name": "contact_name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_name": {
+          "name": "business_name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "selling_description": {
+          "name": "selling_description",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "varchar(1000)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(254)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "booking_order_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'reserved'"
+        },
+        "payment_state": {
+          "name": "payment_state",
+          "type": "prototype_payment_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'not_integrated'"
+        },
+        "total_price_idr": {
+          "name": "total_price_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_revision": {
+          "name": "layout_revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_at": {
+          "name": "reserved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancelled_by_admin_id": {
+          "name": "cancelled_by_admin_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancellation_reason": {
+          "name": "cancellation_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "orders_guest_session_id_guest_sessions_id_fk": {
+          "name": "orders_guest_session_id_guest_sessions_id_fk",
+          "tableFrom": "orders",
+          "tableTo": "guest_sessions",
+          "columnsFrom": ["guest_session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "orders_layout_id_event_id_layout_versions_id_event_id_fk": {
+          "name": "orders_layout_id_event_id_layout_versions_id_event_id_fk",
+          "tableFrom": "orders",
+          "tableTo": "layout_versions",
+          "columnsFrom": ["layout_id", "event_id"],
+          "columnsTo": ["id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "orders_booking_reference_unique": {
+          "name": "orders_booking_reference_unique",
+          "nullsNotDistinct": false,
+          "columns": ["booking_reference"]
+        },
+        "order_layout_identity": {
+          "name": "order_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        },
+        "order_guest_idempotency": {
+          "name": "order_guest_idempotency",
+          "nullsNotDistinct": false,
+          "columns": ["guest_session_id", "idempotency_key"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "order_total_valid": {
+          "name": "order_total_valid",
+          "value": "\"orders\".\"total_price_idr\" BETWEEN 1 AND 100000000000000"
+        },
+        "order_revision_valid": {
+          "name": "order_revision_valid",
+          "value": "\"orders\".\"layout_revision\" > 0"
+        },
+        "order_payload_hash_valid": {
+          "name": "order_payload_hash_valid",
+          "value": "\"orders\".\"submission_payload_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "order_customer_description_valid": {
+          "name": "order_customer_description_valid",
+          "value": "(\"orders\".\"selling_description\" IS NOT NULL AND length(trim(\"orders\".\"selling_description\")) > 0) OR (\"orders\".\"business_name\" IS NOT NULL AND length(trim(\"orders\".\"business_name\")) > 0)"
+        },
+        "order_cancellation_valid": {
+          "name": "order_cancellation_valid",
+          "value": "(\"orders\".\"state\" = 'reserved' AND \"orders\".\"cancelled_at\" IS NULL AND \"orders\".\"cancelled_by_admin_id\" IS NULL AND \"orders\".\"cancellation_reason\" IS NULL) OR (\"orders\".\"state\" = 'cancelled' AND \"orders\".\"cancelled_at\" >= \"orders\".\"reserved_at\" AND \"orders\".\"cancelled_at\" IS NOT NULL AND \"orders\".\"cancelled_by_admin_id\" IS NOT NULL AND length(trim(\"orders\".\"cancelled_by_admin_id\")) > 0 AND \"orders\".\"cancellation_reason\" IS NOT NULL AND length(trim(\"orders\".\"cancellation_reason\")) > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.booth_rows": {
+      "name": "booth_rows",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "route_id": {
+          "name": "route_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "footprint_side": {
+          "name": "footprint_side",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "centerline": {
+          "name": "centerline",
+          "type": "geometry(LineString,4326)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "row_centerline_gist": {
+          "name": "row_centerline_gist",
+          "columns": [
+            {
+              "expression": "centerline",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "booth_rows_route_id_layout_id_event_id_routes_id_layout_id_event_id_fk": {
+          "name": "booth_rows_route_id_layout_id_event_id_routes_id_layout_id_event_id_fk",
+          "tableFrom": "booth_rows",
+          "tableTo": "routes",
+          "columnsFrom": ["route_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "row_layout_identity": {
+          "name": "row_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "row_side_valid": {
+          "name": "row_side_valid",
+          "value": "\"booth_rows\".\"footprint_side\" IN ('left', 'right')"
+        },
+        "row_geometry_valid": {
+          "name": "row_geometry_valid",
+          "value": "ST_IsValid(\"booth_rows\".\"centerline\") AND ST_IsSimple(\"booth_rows\".\"centerline\") AND NOT ST_IsEmpty(\"booth_rows\".\"centerline\") AND ST_Length(\"booth_rows\".\"centerline\"::geography) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_at": {
+          "name": "ends_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_opens_at": {
+          "name": "booking_opens_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_closes_at": {
+          "name": "booking_closes_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_window_state": {
+          "name": "booking_window_state",
+          "type": "booking_window_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'closed'"
+        },
+        "default_slot_frontage_mm": {
+          "name": "default_slot_frontage_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_slot_depth_mm": {
+          "name": "default_slot_depth_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_slot_price_idr": {
+          "name": "default_slot_price_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_illustrative": {
+          "name": "is_illustrative",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "booking_started_at": {
+          "name": "booking_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "events_slug_unique": {
+          "name": "events_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": ["slug"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "event_dates_valid": {
+          "name": "event_dates_valid",
+          "value": "\"events\".\"ends_at\" > \"events\".\"starts_at\""
+        },
+        "event_booking_window_valid": {
+          "name": "event_booking_window_valid",
+          "value": "\"events\".\"booking_closes_at\" > \"events\".\"booking_opens_at\" AND \"events\".\"booking_closes_at\" <= \"events\".\"ends_at\""
+        },
+        "event_defaults_valid": {
+          "name": "event_defaults_valid",
+          "value": "\"events\".\"default_slot_frontage_mm\" > 0 AND \"events\".\"default_slot_depth_mm\" > 0 AND \"events\".\"default_slot_price_idr\" BETWEEN 1 AND 1000000000000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.exclusions": {
+      "name": "exclusions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_id": {
+          "name": "row_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_mm": {
+          "name": "start_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_mm": {
+          "name": "end_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "footprint": {
+          "name": "footprint",
+          "type": "geometry(Polygon,4326)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "exclusion_footprint_gist": {
+          "name": "exclusion_footprint_gist",
+          "columns": [
+            {
+              "expression": "footprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "exclusions_row_id_layout_id_event_id_booth_rows_id_layout_id_event_id_fk": {
+          "name": "exclusions_row_id_layout_id_event_id_booth_rows_id_layout_id_event_id_fk",
+          "tableFrom": "exclusions",
+          "tableTo": "booth_rows",
+          "columnsFrom": ["row_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "exclusion_interval_valid": {
+          "name": "exclusion_interval_valid",
+          "value": "\"exclusions\".\"start_mm\" >= 0 AND \"exclusions\".\"end_mm\" > \"exclusions\".\"start_mm\""
+        },
+        "exclusion_reason_required": {
+          "name": "exclusion_reason_required",
+          "value": "length(trim(\"exclusions\".\"reason\")) > 0"
+        },
+        "exclusion_geometry_valid": {
+          "name": "exclusion_geometry_valid",
+          "value": "\"exclusions\".\"footprint\" IS NULL OR (ST_IsValid(\"exclusions\".\"footprint\") AND NOT ST_IsEmpty(\"exclusions\".\"footprint\") AND ST_Area(\"exclusions\".\"footprint\"::geography) > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.guest_sessions": {
+      "name": "guest_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "guest_sessions_token_hash_unique": {
+          "name": "guest_sessions_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token_hash"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "guest_token_hash_valid": {
+          "name": "guest_token_hash_valid",
+          "value": "\"guest_sessions\".\"token_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "guest_expiry_valid": {
+          "name": "guest_expiry_valid",
+          "value": "\"guest_sessions\".\"expires_at\" > \"guest_sessions\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.routes": {
+      "name": "routes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "routes_layout_id_event_id_layout_versions_id_event_id_fk": {
+          "name": "routes_layout_id_event_id_layout_versions_id_event_id_fk",
+          "tableFrom": "routes",
+          "tableTo": "layout_versions",
+          "columnsFrom": ["layout_id", "event_id"],
+          "columnsTo": ["id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "route_layout_identity": {
+          "name": "route_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.layout_versions": {
+      "name": "layout_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "state": {
+          "name": "state",
+          "type": "layout_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "approval_note": {
+          "name": "approval_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "one_published_layout_per_event": {
+          "name": "one_published_layout_per_event",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"layout_versions\".\"state\" = 'published'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "layout_versions_event_id_events_id_fk": {
+          "name": "layout_versions_event_id_events_id_fk",
+          "tableFrom": "layout_versions",
+          "tableTo": "events",
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "layout_event_identity": {
+          "name": "layout_event_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "event_id"]
+        },
+        "layout_event_version": {
+          "name": "layout_event_version",
+          "nullsNotDistinct": false,
+          "columns": ["event_id", "version"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "layout_revision_positive": {
+          "name": "layout_revision_positive",
+          "value": "\"layout_versions\".\"version\" > 0 AND \"layout_versions\".\"revision\" > 0"
+        },
+        "published_layout_timestamp": {
+          "name": "published_layout_timestamp",
+          "value": "\"layout_versions\".\"state\" <> 'published' OR \"layout_versions\".\"published_at\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reservations": {
+      "name": "reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "reservation_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'reserved'"
+        },
+        "reserved_at": {
+          "name": "reserved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reservations_order_id_layout_id_event_id_orders_id_layout_id_event_id_fk": {
+          "name": "reservations_order_id_layout_id_event_id_orders_id_layout_id_event_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "orders",
+          "columnsFrom": ["order_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reservations_order_id_unique": {
+          "name": "reservations_order_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["order_id"]
+        },
+        "reservation_layout_identity": {
+          "name": "reservation_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "reservation_release_valid": {
+          "name": "reservation_release_valid",
+          "value": "(\"reservations\".\"state\" = 'reserved' AND \"reservations\".\"released_at\" IS NULL) OR (\"reservations\".\"state\" = 'released' AND \"reservations\".\"released_at\" IS NOT NULL AND \"reservations\".\"released_at\" >= \"reservations\".\"reserved_at\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.slot_claims": {
+      "name": "slot_claims",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_at": {
+          "name": "reserved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "one_active_claim_per_slot": {
+          "name": "one_active_claim_per_slot",
+          "columns": [
+            {
+              "expression": "slot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"slot_claims\".\"released_at\" IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "slot_claims_reservation_id_layout_id_event_id_reservations_id_layout_id_event_id_fk": {
+          "name": "slot_claims_reservation_id_layout_id_event_id_reservations_id_layout_id_event_id_fk",
+          "tableFrom": "slot_claims",
+          "tableTo": "reservations",
+          "columnsFrom": ["reservation_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "slot_claims_slot_id_layout_id_event_id_slots_id_layout_id_event_id_fk": {
+          "name": "slot_claims_slot_id_layout_id_event_id_slots_id_layout_id_event_id_fk",
+          "tableFrom": "slot_claims",
+          "tableTo": "slots",
+          "columnsFrom": ["slot_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reservation_slot_unique": {
+          "name": "reservation_slot_unique",
+          "nullsNotDistinct": false,
+          "columns": ["reservation_id", "slot_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "claim_release_valid": {
+          "name": "claim_release_valid",
+          "value": "\"slot_claims\".\"released_at\" IS NULL OR \"slot_claims\".\"released_at\" >= \"slot_claims\".\"reserved_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.slots": {
+      "name": "slots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "layout_id": {
+          "name": "layout_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_stretch_id": {
+          "name": "approved_stretch_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_order": {
+          "name": "display_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_mm": {
+          "name": "start_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_mm": {
+          "name": "end_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_frontage_mm": {
+          "name": "base_frontage_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_depth_mm": {
+          "name": "base_depth_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frontage_override_mm": {
+          "name": "frontage_override_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "depth_override_mm": {
+          "name": "depth_override_mm",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_price_idr": {
+          "name": "base_price_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_override_idr": {
+          "name": "price_override_idr",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "footprint": {
+          "name": "footprint",
+          "type": "geometry(Polygon,4326)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_blocked": {
+          "name": "is_blocked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "blocked_reason": {
+          "name": "blocked_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "slot_footprint_gist": {
+          "name": "slot_footprint_gist",
+          "columns": [
+            {
+              "expression": "footprint",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gist",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "slots_approved_stretch_id_layout_id_event_id_approved_stretches_id_layout_id_event_id_fk": {
+          "name": "slots_approved_stretch_id_layout_id_event_id_approved_stretches_id_layout_id_event_id_fk",
+          "tableFrom": "slots",
+          "tableTo": "approved_stretches",
+          "columnsFrom": ["approved_stretch_id", "layout_id", "event_id"],
+          "columnsTo": ["id", "layout_id", "event_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "slot_layout_identity": {
+          "name": "slot_layout_identity",
+          "nullsNotDistinct": false,
+          "columns": ["id", "layout_id", "event_id"]
+        },
+        "slot_code_per_layout": {
+          "name": "slot_code_per_layout",
+          "nullsNotDistinct": false,
+          "columns": ["layout_id", "code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "slot_dimensions_valid": {
+          "name": "slot_dimensions_valid",
+          "value": "\"slots\".\"base_frontage_mm\" > 0 AND \"slots\".\"base_depth_mm\" > 0 AND (\"slots\".\"frontage_override_mm\" IS NULL OR \"slots\".\"frontage_override_mm\" > 0) AND (\"slots\".\"depth_override_mm\" IS NULL OR \"slots\".\"depth_override_mm\" > 0)"
+        },
+        "slot_interval_matches_frontage": {
+          "name": "slot_interval_matches_frontage",
+          "value": "\"slots\".\"start_mm\" >= 0 AND \"slots\".\"end_mm\" - \"slots\".\"start_mm\" = COALESCE(\"slots\".\"frontage_override_mm\", \"slots\".\"base_frontage_mm\")"
+        },
+        "slot_prices_valid": {
+          "name": "slot_prices_valid",
+          "value": "\"slots\".\"base_price_idr\" BETWEEN 1 AND 1000000000000 AND (\"slots\".\"price_override_idr\" IS NULL OR \"slots\".\"price_override_idr\" BETWEEN 1 AND 1000000000000)"
+        },
+        "slot_block_reason_valid": {
+          "name": "slot_block_reason_valid",
+          "value": "(\"slots\".\"is_blocked\" AND length(trim(\"slots\".\"blocked_reason\")) > 0 AND \"slots\".\"blocked_reason\" IS NOT NULL) OR (NOT \"slots\".\"is_blocked\" AND \"slots\".\"blocked_reason\" IS NULL)"
+        },
+        "slot_revision_positive": {
+          "name": "slot_revision_positive",
+          "value": "\"slots\".\"revision\" > 0"
+        },
+        "slot_geometry_valid": {
+          "name": "slot_geometry_valid",
+          "value": "ST_IsValid(\"slots\".\"footprint\") AND NOT ST_IsEmpty(\"slots\".\"footprint\") AND ST_Area(\"slots\".\"footprint\"::geography) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.audit_actor_kind": {
+      "name": "audit_actor_kind",
+      "schema": "public",
+      "values": ["guest", "admin", "system"]
+    },
+    "public.booking_order_state": {
+      "name": "booking_order_state",
+      "schema": "public",
+      "values": ["reserved", "cancelled"]
+    },
+    "public.booking_window_state": {
+      "name": "booking_window_state",
+      "schema": "public",
+      "values": ["closed", "open"]
+    },
+    "public.layout_state": {
+      "name": "layout_state",
+      "schema": "public",
+      "values": ["draft", "published", "retired"]
+    },
+    "public.prototype_payment_state": {
+      "name": "prototype_payment_state",
+      "schema": "public",
+      "values": ["not_integrated"]
+    },
+    "public.reservation_state": {
+      "name": "reservation_state",
+      "schema": "public",
+      "values": ["reserved", "released"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

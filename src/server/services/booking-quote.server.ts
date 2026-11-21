@@ -31,7 +31,6 @@ export async function readBookingQuote(
     return {
       slotId: slot.slotId,
       code: slot.code,
-      routeName: slot.routeName,
       frontageMillimeters: slot.frontageMillimeters,
       depthMillimeters: slot.depthMillimeters,
       priceIdr: slot.priceIdr,

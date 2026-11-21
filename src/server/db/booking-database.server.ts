@@ -32,13 +32,13 @@ export async function withBookingDatabase<T>(
     const correlationId = randomUUID()
     console.error(
       JSON.stringify({
-        operation: 'booking_database_read_failed',
+        operation: 'booking_database_operation_failed',
         correlationId,
         errorName: error instanceof Error ? error.name : 'UnknownError',
       }),
     )
     throw new Error(
-      `Booking inventory is temporarily unavailable. Reference ${correlationId}.`,
+      `Booking service is temporarily unavailable. Reference ${correlationId}.`,
     )
   } finally {
     await connection.close()

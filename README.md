@@ -2,7 +2,7 @@
 
 Customer booking and organizer administration prototype built with React, TanStack Start, TypeScript, Neon PostgreSQL/PostGIS, and the existing Nitro Node runtime. Customers do not need an account or login. Payment integration is deferred.
 
-See [MVP](docs/mvp.md), [architecture](docs/architecture.md), and [progress](docs/progress.md) before extending behavior. `/booking` is a full-screen satellite map with hover/clickable slots on both street sides, a floating cart, slot-code search and an accessible results overlay. Zoom-out and panning are limited to the fitted inventory region. Event information belongs to `/`, which remains the starter landing page; checkout/reservations and `/admin` are subsequent work.
+See [MVP](docs/mvp.md), [architecture](docs/architecture.md), and [progress](docs/progress.md) before extending behavior. `/booking` is a full-screen satellite map with hover/clickable slots on both street sides, a floating cart, slot-code search and an accessible results overlay. Zoom-out and panning are limited to the fitted inventory region. The cart's **Lanjut isi data** opens `/booking/checkout` for customer details and server-authoritative quote review. Atomic reservations and private confirmation/recovery are implemented; `/admin` remains subsequent work. Event information belongs to `/`, which remains the starter landing page.
 
 ## Local development
 
@@ -32,9 +32,17 @@ The ignored local application database targets isolated branch `br-tiny-lake-b34
 
 Selection is temporary browser state, not a reservation, and survives search/background changes within the mounted booking flow. Clicking an available footprint adds it directly to the cart; clicking a selected one removes it. Search results provide the same operation and explicit map focus. Reloading starts a fresh selection. Only slot-code search is offered; there are no route, availability or price-range filters. Inventory refreshes every 15 seconds while visible. Refresh failures retain cached information and the cart, show retry, and stop new selections until recovery. Unavailable/unpublished selections are flagged for removal rather than silently discarded. See [browser verification](docs/booking-browser-verification.md).
 
-Customer booking copy uses casual Bahasa Indonesia, including accessible labels and decimal measurements such as `1,5 × 2 m`. The mobile cart starts as a compact bar. **Lihat** opens a bounded sheet with a visible **Tutup** action; closing/backdrop/Escape preserves selection. Item content scrolls inside the sheet while its header/footer stay reachable. Native dialog behavior supplies focus containment and restoration. No new UI dependency or database change is needed.
+Customer booking copy uses casual Bahasa Indonesia, including accessible labels and decimal measurements such as `1,5 × 2 m`. The mobile cart starts as a compact bar. **Lihat** opens a bounded sheet with a visible **Tutup** action; closing/backdrop/Escape preserves selection. Item content scrolls inside the sheet while its header/footer stay reachable. Native dialog behavior supplies focus containment and restoration. The mobile cart uses the native dialog without an additional UI dependency.
 
 For a fresh dataset, create a new disposable branch and apply migrations/seed there. There is deliberately no destructive reset command. Do not truncate history or reset a shared/live branch.
+
+## Checkout review
+
+Checkout collects name, what the customer plans to sell, email, an Indonesian WhatsApp number and an optional note. **Pesan N slot** creates a real reservation through an atomic backend transaction, then opens a private confirmation page. Changed quotes require review; conflicts allocate no slots and retain a correctable selection. An automatically established private guest session requires no login. No payment is collected.
+
+The backend locks the event and sorted slots, checks current prices/dimensions/revisions and claims, and saves the complete order/items/claims or none. Same-key retries recover the existing order. Customer fields remain in the flow-scoped draft; only an opaque recovery UUID enters sessionStorage for reload recovery. Cookies provide ownership, not the UUID/reference. A failed initial read uses the main button's retry state. No email/WhatsApp message is sent. See [checkout/reservation verification](docs/booking-checkout-verification.md).
+
+Admins may change available slot prices and sizes after opening. A database guard protects reserved inventory and immutable order snapshots. Admin edit/reflow/cancellation interfaces remain upcoming work.
 
 ## Database changes
 
@@ -85,4 +93,4 @@ npm run build
 node --env-file-if-exists=.env.local .output/server/index.mjs
 ```
 
-Hosting, live deployment, map-provider configuration, persistent admin authentication, and payment acceptance remain separate work.
+Hosting, live deployment, deployed map-key restrictions, persistent admin authentication and payment acceptance remain separate work.

@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Link } from '@tanstack/react-router'
 import { ShoppingCart, X } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { formatPriceIdr } from '#/shared/format-price-idr'
@@ -163,13 +164,24 @@ export function BookingSlotSelectionSummary({
                     {formatPriceIdr(selection.totalPriceIdr)}
                   </strong>
                 </div>
-                <Button
-                  variant="secondary"
-                  className="mt-3 w-full"
-                  onClick={clearSelection}
-                >
-                  Kosongin keranjang
-                </Button>
+                <div className="mt-3 flex flex-col gap-2 [@media(max-height:600px)]:flex-row">
+                  <Button
+                    variant="secondary"
+                    className="min-h-12 flex-1"
+                    onClick={clearSelection}
+                  >
+                    Kosongin keranjang
+                  </Button>
+                  {!selection.hasUnavailableSlots && !isInventoryUnverified && (
+                    <Link
+                      to="/booking/checkout"
+                      onClick={() => cartDialogRef.current?.close()}
+                      className="flex min-h-12 flex-1 items-center justify-center rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      Lanjut isi data
+                    </Link>
+                  )}
+                </div>
               </>
             )}
             <p className="mt-3 text-sm text-muted-foreground">

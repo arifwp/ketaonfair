@@ -162,9 +162,9 @@ For individual resize, lock the event and affected draft records, check the expe
 
 ### Publication and identity
 
-Allow one active published layout per event. Publishing locks the event record and checks there has been no reservation. Checkout takes the same event lock before checking layout revision and setting `booking_started_at`.
+Allow one active published layout per event. Publishing and checkout lock the event before sorted slot locks and revision checks. `booking_started_at` records the first reservation; it is not a global price/geometry freeze.
 
-Once `booking_started_at` is set, all geometry, codes, dimensions, slot membership, and layout replacement are frozen for that event. This intentionally limits post-reservation editing in the MVP and prevents duplicated inventory across layout versions. Draft versions remain useful before bookings and for future events, not for bypassing the freeze.
+Confirmed on 18 November 2026: admins may change price and size for available slots after opening. Reserved slot identities, dimensions, prices and footprints stay fixed, as do historical order snapshots after cancellation. The database rejects protected inventory edits while active claims exist. A04/A06 must apply safe available-slot edits atomically to the published revision, preserving reserved slot identities/geometry and access gaps rather than replacing active inventory with new layout/slot IDs. Draft reflow is not permission to move a reserved neighbour.
 
 Blocking and pricing remain independent operations on unclaimed inventory. Event default pricing is a generation template; generated base prices and per-slot overrides follow the [MVP pricing rules](./mvp.md#53-pricing-and-price-generation).
 
@@ -232,7 +232,7 @@ The unique index remains the final allocation guard. Retry only bounded, safe tr
 
 ### Prototype cancellation
 
-Proposed admin-only operation: lock the event, affected slots, booking, and claims in the documented order; verify the booking is a prototype reservation with no payment integration; record cancellation reason/actor; release every active claim and mark the booking cancelled in one transaction. Repeating the cancellation returns its existing result. Retain immutable snapshots and the event's geometry freeze. Do not reuse this release rule for future pending/paid bookings without a separate policy.
+Proposed admin-only operation: lock the event, affected slots, booking, and claims in the documented order; verify the booking is a prototype reservation with no payment integration; record cancellation reason/actor; release every active claim and mark the booking cancelled in one transaction. Repeating the cancellation returns its existing result. Retain immutable snapshots. Released inventory becomes eligible for later safe edits; existing order snapshots never change. Do not reuse this release rule for future pending/paid bookings without a separate policy.
 
 ### Pricing and blocking flow
 
@@ -320,9 +320,23 @@ The public inventory DTO now includes row identity, direction-relative side/labe
 
 The cart is a compact launcher by default. A feature-owned native `<dialog>` opens as a mobile bottom sheet and a desktop floating panel, with an explicit **Tutup** button. The browser owns modal visibility, focus containment, Escape and focus restoration; the backdrop also closes the sheet. Closing never mutates selected IDs. A bounded flex layout keeps header/footer outside the scrolling item list. Portrait height is capped at 65dvh, with 85dvh for screens at most 600 px high. Root viewport metadata permits safe-area layout. Mobile map controls sit above the compact bar, and fit padding leaves room for them. Booking labels, errors, metadata, map-engine control strings and decimal dimensions use Indonesian; domain enum values, IDs, database values and prices are unchanged.
 
+B05–B07 implement `/booking/checkout` and `/booking/orders/$bookingOrderId`. Checkout uses confirmed name, free-text selling description, email, Indonesian WhatsApp number normalized to `+62`, and optional note. Street-route names are omitted from the customer quote DTO and summary. Route relations remain internal GIS organization. No WhatsApp/email is sent, and format validation does not verify an account.
+
+A layout-scoped draft retains contact fields during internal map/checkout navigation. TanStack Query owns inventory and quote data, with event/layout/revision and sorted slot IDs in quote keys. Customer details never enter URLs or browser storage. A separate preliminary error card was removed at the user's request; a failed initial quote read changes the main action to **Coba cek lagi**. Cached quotes may be submitted because the transaction validates them authoritatively.
+
+The POST reservation boundary validates contact fields, guest ownership and the reviewed quote. It locks the event, guest and selected slot rows in deterministic order, rechecks the window, active layout/revisions, availability, exact dimensions and prices, then inserts the order, immutable item snapshots, reservation, every claim and audit record in one transaction. The unique active-claim index is a final database guard. A conflict allocates none. Bounded lock/statement timeouts and a 20-second client deadline produce same-key recovery rather than assumed failure. Per-guest attempt limiting is database-backed; existing idempotent bookings bypass that limit so recovery remains possible.
+
+The guest token is a random 256-bit value in an HttpOnly, SameSite=Lax cookie, Secure in production, with a 30-day session lifetime. Only its SHA-256 hash is stored. Session expiry never cancels inventory. TanStack Start's installed default CSRF middleware protects server functions. Every reservation/private read checks ownership server-side; a guessed ID, reference or submission key grants no access.
+
+One idempotency UUID identifies an unfinished submission. A lost response keeps the exact request locked for retry; an opaque UUID in sessionStorage additionally permits owner-only lookup after reload. No contact or quote payload is stored there. Keeping the key across corrections is safe before an order exists; after commit, a changed payload is an idempotency conflict. A retry returns the same order, even when its claims are no longer available or it was cancelled. Successful navigation clears the recovery key. Storage-blocked browsers retain in-memory retry but cannot promise reload recovery.
+
+The private result is streamed through an owner-checked read, with `private, no-store` on RPC and the server-rendered page. It displays immutable slot/value/contact snapshots, copyable reference, event-timezone timestamp and reserved/cancelled state, always explicitly unpaid. A different or expired guest receives the same non-disclosing not-found result. Private query data is cleared when a new guest session is established.
+
+Reviewed migrations add selling description/optional note without rewriting legacy business-name snapshots, and protect actively reserved slot price, size, identity, footprint and blocking state. Available slots remain editable after opening. The prototype implementation retains reservations until explicit audited admin cancellation, with no expiry job/provider call. This is the chosen demo lifecycle, not a confirmed live operating policy. Admin editing/cancellation APIs remain A02–A07 work.
+
 ### Server boundaries
 
-These are conceptual operations to implement, not existing endpoints.
+Inventory/quote reads, guest establishment, reservation, owner-only status and submission recovery now have server-function boundaries. Admin operations remain conceptual work.
 
 | Boundary                     | Operations                                                                                                                              |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -383,21 +397,21 @@ Keep the existing Nitro Node build as the baseline. Choose a host supporting the
 
 The prototype does not require expiry cleanup. When payment holds are introduced, do not use an in-process timer as their only cleanup mechanism on a host that can restart or suspend. Do not run schema migrations or reset demo data automatically on ordinary requests. Review migrations on an isolated branch before applying them to a shared environment.
 
-Basemap account setup, local tile coverage, provider attribution, and hosting remain unverified prototype dependencies. Payment credentials and scheduler setup are deferred dependencies. Exact costs and hosting limits are outside this architecture decision.
+Local MapTiler account/key setup, tile coverage and attribution were verified with B03. Deployed key-origin restrictions and hosting remain unverified dependencies. Payment credentials and scheduler setup are deferred dependencies. Exact costs and hosting limits are outside this architecture decision.
 
 ## 13. Decision records
 
 Evidence for these choices is the user brief and local scaffold. No comparable product screens or user testing were used. These are engineering/product judgments with the following trade-offs.
 
-| Decision             | Alternatives considered                                          | Choice, reason, and trade-off                                                                                                                            |
-| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend boundary     | Separate API service / full-stack Start app                      | One app reduces integration work and fits the requested stack; UI and backend share deployment.                                                          |
-| GIS stack            | Custom GIS editor / MapLibre with drawing and geometry libraries | Compose existing tools; the project must still implement frontage rules and validation.                                                                  |
-| Pricing model        | Rule engine / default plus explicit slot prices                  | Stored base plus optional override fits mostly uniform prices; default changes require an explicit bulk application.                                     |
-| Customer identity    | Mandatory account / guest session                                | Confirmed: customers check out without sign-in or registration. Establish a private guest session automatically; cross-device recovery remains deferred. |
-| Availability updates | Push realtime / periodic refresh                                 | Polling is enough for the initial demo; visible availability may lag, so reservation remains authoritative.                                              |
-| Post-sale layout     | Migrate active versions / freeze geometry                        | Freeze after the first reservation; safer and simpler, but physical changes require a later workflow.                                                    |
-| Infrastructure       | Dedicated workers/queue / in-app services                        | Use the app and PostgreSQL for the prototype; scheduled payment reconciliation is deferred.                                                              |
+| Decision             | Alternatives considered                                          | Choice, reason, and trade-off                                                                                                                                                 |
+| -------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend boundary     | Separate API service / full-stack Start app                      | One app reduces integration work and fits the requested stack; UI and backend share deployment.                                                                               |
+| GIS stack            | Custom GIS editor / MapLibre with drawing and geometry libraries | Compose existing tools; the project must still implement frontage rules and validation.                                                                                       |
+| Pricing model        | Rule engine / default plus explicit slot prices                  | Stored base plus optional override fits mostly uniform prices; default changes require an explicit bulk application.                                                          |
+| Customer identity    | Mandatory account / guest session                                | Confirmed: customers check out without sign-in or registration. Establish a private guest session automatically; cross-device recovery remains deferred.                      |
+| Availability updates | Push realtime / periodic refresh                                 | Polling is enough for the initial demo; visible availability may lag, so reservation remains authoritative.                                                                   |
+| Post-sale layout     | Migrate active versions / freeze geometry                        | Confirmed: available price/size changes remain allowed after opening, while reserved identities/geometry/values are protected. Safe reflow must preserve reserved neighbours. |
+| Infrastructure       | Dedicated workers/queue / in-app services                        | Use the app and PostgreSQL for the prototype; scheduled payment reconciliation is deferred.                                                                                   |
 
 Confidence is high that one full-stack application fits this prototype. Confidence in site accuracy, actual payment expiry settings, and operating policies remains unverified until field/provider tests and organizer decisions.
 

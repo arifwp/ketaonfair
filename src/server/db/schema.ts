@@ -335,7 +335,9 @@ export const bookingOrders = pgTable(
       length: 64,
     }).notNull(),
     contactName: varchar('contact_name', { length: 200 }).notNull(),
-    businessName: varchar('business_name', { length: 200 }).notNull(),
+    businessName: varchar('business_name', { length: 200 }),
+    sellingDescription: varchar('selling_description', { length: 200 }),
+    note: varchar('note', { length: 1000 }).notNull().default(''),
     email: varchar('email', { length: 254 }).notNull(),
     phone: varchar('phone', { length: 40 }).notNull(),
     state: bookingOrderState('state').notNull().default('reserved'),
@@ -367,6 +369,10 @@ export const bookingOrders = pgTable(
     check(
       'order_payload_hash_valid',
       sql`${order.submissionPayloadHash} ~ '^[a-f0-9]{64}$'`,
+    ),
+    check(
+      'order_customer_description_valid',
+      sql`(${order.sellingDescription} IS NOT NULL AND length(trim(${order.sellingDescription})) > 0) OR (${order.businessName} IS NOT NULL AND length(trim(${order.businessName})) > 0)`,
     ),
     check(
       'order_cancellation_valid',
